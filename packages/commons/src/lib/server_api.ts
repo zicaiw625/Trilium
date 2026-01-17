@@ -1,3 +1,4 @@
+import type { Locale } from "./i18n.js";
 import { AttachmentRow, AttributeRow, BranchRow, NoteRow, NoteType } from "./rows.js";
 
 type Response = {
@@ -11,11 +12,11 @@ type Response = {
 export interface AppInfo {
     appVersion: string;
     dbVersion: number;
-    nodeVersion: string;
+    nodeVersion?: string;
     syncVersion: number;
     buildDate: string;
     buildRevision: string;
-    dataDirectory: string;
+    dataDirectory?: string;
     clipperProtocolVersion: string;
     /** for timezone inference */
     utcDateTime: string;
@@ -50,7 +51,7 @@ export interface RevisionPojo {
     utcDateLastEdited?: string;
     utcDateCreated?: string;
     utcDateModified?: string;
-    content?: string | Buffer<ArrayBufferLike>;
+    content?: string | Uint8Array;
     contentLength?: number;
 }
 
@@ -297,4 +298,46 @@ export interface IconRegistry {
             terms: string[];
         }[]
     }[];
+}
+
+export type LabelType = "text" | "number" | "boolean" | "date" | "datetime" | "time" | "url" | "color";
+export type Multiplicity = "single" | "multi";
+
+export interface DefinitionObject {
+    isPromoted?: boolean;
+    labelType?: LabelType;
+    multiplicity?: Multiplicity;
+    numberPrecision?: number;
+    promotedAlias?: string;
+    inverseRelation?: string;
+}
+
+export interface BootstrapDefinition {
+    device: "mobile" | "desktop" | "print" | false;
+    csrfToken: string;
+    themeCssUrl: string | false;
+    themeUseNextAsBase?: "next" | "next-light" | "next-dark";
+    headingStyle: "plain" | "underline" | "markdown";
+    layoutOrientation: "vertical" | "horizontal";
+    platform?: typeof process.platform | "web";
+    isElectron: boolean;
+    isStandalone?: boolean;
+    hasNativeTitleBar: boolean;
+    hasBackgroundEffects: boolean;
+    maxEntityChangeIdAtLoad: number;
+    maxEntityChangeSyncIdAtLoad: number;
+    instanceName: string | null;
+    appCssNoteIds: string[];
+    isDev: boolean;
+    isMainWindow: boolean;
+    isProtectedSessionAvailable: boolean;
+    triliumVersion: string;
+    assetPath: string;
+    appPath: string;
+    baseApiUrl: string;
+    currentLocale: Locale;
+    isRtl: boolean;
+    iconPackCss: string;
+    iconRegistry: IconRegistry;
+    TRILIUM_SAFE_MODE: boolean;
 }

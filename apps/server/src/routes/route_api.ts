@@ -1,15 +1,15 @@
+import { routes, NotFoundError, ValidationError } from "@triliumnext/core";
 import express, { type RequestHandler } from "express";
 import multer from "multer";
-import log from "../services/log.js";
-import cls from "../services/cls.js";
-import sql from "../services/sql.js";
-import entityChangesService from "../services/entity_changes.js";
-import AbstractBeccaEntity from "../becca/entities/abstract_becca_entity.js";
-import NotFoundError from "../errors/not_found_error.js";
-import ValidationError from "../errors/validation_error.js";
+
+import { namespace } from "../cls_provider.js";
 import auth from "../services/auth.js";
-import { doubleCsrfProtection as csrfMiddleware } from "./csrf_protection.js";
+import cls from "../services/cls.js";
+import entityChangesService from "../services/entity_changes.js";
+import log from "../services/log.js";
+import sql from "../services/sql.js";
 import { safeExtractMessageAndStackFromError } from "../services/utils.js";
+import { doubleCsrfProtection as csrfMiddleware } from "./csrf_protection.js";
 
 const MAX_ALLOWED_FILE_SIZE_MB = 250;
 export const router = express.Router();
@@ -23,38 +23,10 @@ type NotAPromise<T> = T & { then?: void };
 export type ApiRequestHandler = (req: express.Request, res: express.Response, next: express.NextFunction) => unknown;
 export type SyncRouteRequestHandler = (req: express.Request, res: express.Response, next: express.NextFunction) => NotAPromise<object> | number | string | void | null;
 
-/** Handling common patterns. If entity is not caught, serialization to JSON will fail */
-function convertEntitiesToPojo(result: unknown) {
-    if (result instanceof AbstractBeccaEntity) {
-        result = result.getPojo();
-    } else if (Array.isArray(result)) {
-        for (const idx in result) {
-            if (result[idx] instanceof AbstractBeccaEntity) {
-                result[idx] = result[idx].getPojo();
-            }
-        }
-    } else if (result && typeof result === "object") {
-        if ("note" in result && result.note instanceof AbstractBeccaEntity) {
-            result.note = result.note.getPojo();
-        }
-
-        if ("branch" in result && result.branch instanceof AbstractBeccaEntity) {
-            result.branch = result.branch.getPojo();
-        }
-    }
-
-    if (result && typeof result === "object" && "executionResult" in result) {
-        // from runOnBackend()
-        result.executionResult = convertEntitiesToPojo(result.executionResult);
-    }
-
-    return result;
-}
-
 export function apiResultHandler(req: express.Request, res: express.Response, result: unknown) {
     res.setHeader("trilium-max-entity-change-id", entityChangesService.getMaxEntityChangeId());
 
-    result = convertEntitiesToPojo(result);
+    result = routes.convertEntitiesToPojo(result);
 
     // if it's an array and the first element is integer, then we consider this to be [statusCode, response] format
     if (Array.isArray(result) && result.length > 0 && Number.isInteger(result[0])) {
@@ -67,9 +39,9 @@ export function apiResultHandler(req: express.Request, res: express.Response, re
         return send(res, statusCode, response);
     } else if (result === undefined) {
         return send(res, 204, "");
-    } else {
-        return send(res, 200, result);
     }
+    return send(res, 200, result);
+
 }
 
 function send(res: express.Response, statusCode: number, response: unknown) {
@@ -81,14 +53,14 @@ function send(res: express.Response, statusCode: number, response: unknown) {
         res.status(statusCode).send(response);
 
         return response.length;
-    } else {
-        const json = JSON.stringify(response);
-
-        res.setHeader("Content-Type", "application/json");
-        res.status(statusCode).send(json);
-
-        return json.length;
     }
+    const json = JSON.stringify(response);
+
+    res.setHeader("Content-Type", "application/json");
+    res.status(statusCode).send(json);
+
+    return json.length;
+
 }
 
 export function apiRoute(method: HttpMethod, path: string, routeHandler: SyncRouteRequestHandler) {
@@ -112,8 +84,8 @@ function internalRoute(method: HttpMethod, path: string, middleware: express.Han
         const start = Date.now();
 
         try {
-            cls.namespace.bindEmitter(req);
-            cls.namespace.bindEmitter(res);
+            namespace.bindEmitter(req);
+            namespace.bindEmitter(res);
 
             const result = cls.init(() => {
                 cls.set("componentId", req.headers["trilium-component-id"]);
@@ -193,7 +165,7 @@ export function createUploadMiddleware(): RequestHandler {
 const uploadMiddleware = createUploadMiddleware();
 
 export const uploadMiddlewareWithErrorHandling = function (req: express.Request, res: express.Response, next: express.NextFunction) {
-    uploadMiddleware(req, res, function (err) {
+    uploadMiddleware(req, res, (err) => {
         if (err?.code === "LIMIT_FILE_SIZE") {
             res.setHeader("Content-Type", "text/plain").status(400).send(`Cannot upload file because it excceeded max allowed file size of ${MAX_ALLOWED_FILE_SIZE_MB} MiB`);
         } else {
