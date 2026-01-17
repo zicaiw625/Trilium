@@ -1,27 +1,37 @@
 <!DOCTYPE html>
-<html>
-  <head>
-    <meta charset="UTF-8">
-    <title>NeutralinoJs sample app</title>
-    <link rel="stylesheet" href="/styles.css">
-  </head>
-  <body>
-    <div id="neutralinoapp">
-      <h1>NeutralinoJs</h1>
-      <div id="info"></div>
-      <br/>
-      <img src="/icons/logo.gif" alt="Neutralinojs" />
-      <div>
-        <a href="#" onclick="openDocs();">Docs</a> &middot;  
-        <a href="#" onclick="openTutorial();">Video tutorial</a>
-      </div>
-    </div>
-    <!-- Neutralino.js client. This file is gitignored, 
-        because `neu update` typically downloads it.
-        Avoid copy-pasting it. 
-        -->
-    <script src="/js/neutralino.js"></script>
-    <!-- Your app's source files -->
-    <script src="/js/main.js"></script>
-  </body>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="shortcut icon" href="favicon.ico">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+        <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover" />
+        <link rel="manifest" crossorigin="use-credentials" href="manifest.webmanifest">
+        <title>Trilium Notes</title>
+      <script type="module" crossorigin src="./src/main.js"></script>
+      <link rel="modulepreload" crossorigin href="./src/preload-helper.js">
+      <link rel="modulepreload" crossorigin href="./src/local-bridge.js">
+    </head>
+
+    <body id="trilium-app">
+        <noscript>Trilium requires JavaScript to be enabled.</noscript>
+
+        <script>
+            // hide body to reduce flickering on the startup. This is done through JS and not CSS to not hide <noscript>
+            document.getElementsByTagName("body")[0].style.display = "none";
+        </script>
+
+        <div class="dropdown-menu dropdown-menu-sm" id="context-menu-container" style="display: none"></div>
+
+        <!-- Required for match the PWA's top bar color with the theme -->
+        <!-- This works even when the user directly changes --root-background in CSS -->
+        <div id="background-color-tracker" style="position: absolute; visibility: hidden; color: var(--root-background); transition: color 1ms;"></div>
+
+        <!-- Bootstrap (request server for required information) -->
+
+        <!-- Required for correct loading of scripts in Electron -->
+        <script>
+            if (typeof module === 'object') {window.module = module; module = undefined;}
+        </script>
+    </body>
 </html>
