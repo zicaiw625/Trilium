@@ -11,5 +11,8 @@ neutralino.js
 # Neutralinojs related files
 .storage
 *.log
+.tmp
 
+# Files managed by the build script
 resources
+neutralino.config.json
