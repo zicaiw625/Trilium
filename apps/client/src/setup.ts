@@ -1,67 +1,106 @@
 import "jquery";
 
-import ko from "knockout";
-
 import utils from "./services/utils.js";
 
-// TriliumNextTODO: properly make use of below types
-// type SetupModelSetupType = "new-document" | "sync-from-desktop" | "sync-from-server" | "";
-// type SetupModelStep = "sync-in-progress" | "setup-type" | "new-document-in-progress" | "sync-from-desktop";
+type SetupStep = "sync-in-progress" | "setup-type" | "new-document-in-progress" | "sync-from-desktop" | "sync-from-server";
+type SetupType = "new-document" | "sync-from-desktop" | "sync-from-server" | "";
 
-class SetupModel {
-    syncInProgress: boolean;
-    step: ko.Observable<string>;
-    setupType: ko.Observable<string>;
-    setupNewDocument: ko.Observable<boolean>;
-    setupSyncFromDesktop: ko.Observable<boolean>;
-    setupSyncFromServer: ko.Observable<boolean>;
-    syncServerHost: ko.Observable<string | undefined>;
-    syncProxy: ko.Observable<string | undefined>;
-    password: ko.Observable<string | undefined>;
-    totpToken: ko.Observable<string | undefined>;
-    totpEnabled: ko.Observable<boolean>;
+class SetupController {
+    private step: SetupStep;
+    private setupType: SetupType = "";
+    private syncPollIntervalId: number | null = null;
+    private rootNode: HTMLElement;
+    private setupTypeForm: HTMLFormElement;
+    private syncFromServerForm: HTMLFormElement;
+    private setupTypeNextButton: HTMLButtonElement;
+    private setupTypeInputs: HTMLInputElement[];
+    private syncServerHostInput: HTMLInputElement;
+    private syncProxyInput: HTMLInputElement;
+    private passwordInput: HTMLInputElement;
+    private totpTokenInput: HTMLInputElement;
+    private totpSection: HTMLElement;
+    private totpEnabled = false;
+    private sections: Record<SetupStep, HTMLElement>;
 
-    constructor(syncInProgress: boolean) {
-        this.syncInProgress = syncInProgress;
-        this.step = ko.observable(syncInProgress ? "sync-in-progress" : "setup-type");
-        this.setupType = ko.observable("");
-        this.setupNewDocument = ko.observable(false);
-        this.setupSyncFromDesktop = ko.observable(false);
-        this.setupSyncFromServer = ko.observable(false);
-        this.syncServerHost = ko.observable();
-        this.syncProxy = ko.observable();
-        this.password = ko.observable();
-        this.totpToken = ko.observable();
-        this.totpEnabled = ko.observable(false);
+    constructor(rootNode: HTMLElement, syncInProgress: boolean) {
+        this.rootNode = rootNode;
+        this.step = syncInProgress ? "sync-in-progress" : "setup-type";
+        this.setupTypeForm = mustGetElement("setup-type-form", HTMLFormElement);
+        this.syncFromServerForm = mustGetElement("sync-from-server-form", HTMLFormElement);
+        this.setupTypeNextButton = mustGetElement("setup-type-next", HTMLButtonElement);
+        this.setupTypeInputs = Array.from(document.querySelectorAll<HTMLInputElement>("input[name='setup-type']"));
+        this.syncServerHostInput = mustGetElement("sync-server-host", HTMLInputElement);
+        this.syncProxyInput = mustGetElement("sync-proxy", HTMLInputElement);
+        this.passwordInput = mustGetElement("password", HTMLInputElement);
+        this.totpTokenInput = mustGetElement("totp-token", HTMLInputElement);
+        this.totpSection = mustGetElement("totp-section", HTMLElement);
+        this.sections = {
+            "setup-type": mustGetElement("setup-type-section", HTMLElement),
+            "new-document-in-progress": mustGetElement("new-document-in-progress-section", HTMLElement),
+            "sync-from-desktop": mustGetElement("sync-from-desktop-section", HTMLElement),
+            "sync-from-server": mustGetElement("sync-from-server-section", HTMLElement),
+            "sync-in-progress": mustGetElement("sync-in-progress-section", HTMLElement)
+        };
+    }
 
-        if (this.syncInProgress) {
-            setInterval(checkOutstandingSyncs, 1000);
+    init() {
+        this.setupTypeForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            void this.selectSetupType();
+        });
+
+        this.syncFromServerForm.addEventListener("submit", (event) => {
+            event.preventDefault();
+            void this.finish();
+        });
+
+        for (const input of this.setupTypeInputs) {
+            input.addEventListener("change", () => {
+                this.setupType = input.value as SetupType;
+                this.render();
+            });
         }
+
+        this.syncServerHostInput.addEventListener("blur", () => {
+            void this.checkTotpStatus();
+        });
+
+        for (const backButton of document.querySelectorAll<HTMLElement>("[data-action='back']")) {
+            backButton.addEventListener("click", () => {
+                this.back();
+            });
+        }
+
         const serverAddress = `${location.protocol}//${location.host}`;
         $("#current-host").html(serverAddress);
+
+        if (this.step === "sync-in-progress") {
+            this.startSyncPolling();
+        }
+
+        this.render();
+        this.rootNode.style.display = "";
     }
 
-    // this is called in setup.ejs
-    setupTypeSelected() {
-        return !!this.setupType();
-    }
+    private async selectSetupType() {
+        if (this.setupType === "new-document") {
+            this.setStep("new-document-in-progress");
 
-    async selectSetupType() {
-        if (this.setupType() === "new-document") {
-            this.step("new-document-in-progress");
+            await $.post("api/setup/new-document");
+            window.location.replace("./setup");
+            return;
+        }
 
-            $.post("api/setup/new-document").then(() => {
-                window.location.replace("./setup");
-            });
-        } else {
-            this.step(this.setupType());
+        if (this.setupType) {
+            this.setStep(this.setupType);
         }
     }
 
-    async checkTotpStatus() {
-        const syncServerHost = this.syncServerHost();
+    private async checkTotpStatus() {
+        const syncServerHost = this.syncServerHostInput.value.trim();
+
         if (!syncServerHost) {
-            this.totpEnabled(false);
+            this.setTotpEnabled(false);
             return;
         }
 
@@ -69,22 +108,40 @@ class SetupModel {
             const resp = await $.post("api/setup/check-server-totp", {
                 syncServerHost
             });
-            this.totpEnabled(!!resp.totpEnabled);
+
+            this.setTotpEnabled(!!resp.totpEnabled);
         } catch {
-            // If we can't reach the server, don't show TOTP field yet
-            this.totpEnabled(false);
+            // If we can't reach the server, don't show the TOTP field yet.
+            this.setTotpEnabled(false);
         }
     }
 
-    back() {
-        this.step("setup-type");
-        this.setupType("");
+    private setTotpEnabled(enabled: boolean) {
+        this.totpEnabled = enabled;
+
+        if (!enabled) {
+            this.totpTokenInput.value = "";
+        }
+
+        this.render();
     }
 
-    async finish() {
-        const syncServerHost = this.syncServerHost();
-        const syncProxy = this.syncProxy();
-        const password = this.password();
+    private back() {
+        this.setStep("setup-type");
+        this.setupType = "";
+        this.setTotpEnabled(false);
+
+        for (const input of this.setupTypeInputs) {
+            input.checked = false;
+        }
+
+        this.render();
+    }
+
+    private async finish() {
+        const syncServerHost = this.syncServerHostInput.value.trim();
+        const syncProxy = this.syncProxyInput.value.trim();
+        const password = this.passwordInput.value;
 
         if (!syncServerHost) {
             showAlert("Trilium server address can't be empty");
@@ -96,12 +153,11 @@ class SetupModel {
             return;
         }
 
-        // Check TOTP status before submitting (in case it wasn't checked yet)
         await this.checkTotpStatus();
 
-        const totpToken = this.totpToken();
+        const totpToken = this.totpTokenInput.value.trim();
 
-        if (this.totpEnabled() && !totpToken) {
+        if (this.totpEnabled && !totpToken) {
             showAlert("TOTP token can't be empty when two-factor authentication is enabled");
             return;
         }
@@ -115,14 +171,34 @@ class SetupModel {
         });
 
         if (resp.result === "success") {
-            this.step("sync-in-progress");
-
-            setInterval(checkOutstandingSyncs, 1000);
-
             hideAlert();
+            this.setStep("sync-in-progress");
+            this.startSyncPolling();
         } else {
             showAlert(`Sync setup failed: ${resp.error}`);
         }
+    }
+
+    private setStep(step: SetupStep) {
+        this.step = step;
+        this.render();
+    }
+
+    private render() {
+        for (const [step, section] of Object.entries(this.sections) as [SetupStep, HTMLElement][]) {
+            section.style.display = step === this.step ? "" : "none";
+        }
+
+        this.totpSection.style.display = this.totpEnabled ? "" : "none";
+        this.setupTypeNextButton.disabled = !this.setupType;
+    }
+
+    private startSyncPolling() {
+        if (this.syncPollIntervalId !== null) {
+            return;
+        }
+
+        this.syncPollIntervalId = window.setInterval(checkOutstandingSyncs, 1000);
     }
 }
 
@@ -157,9 +233,19 @@ function getSyncInProgress() {
     return !!parseInt(el.content);
 }
 
-addEventListener("DOMContentLoaded", (event) => {
+function mustGetElement<T extends typeof HTMLElement>(id: string, ctor: T): InstanceType<T> {
+    const element = document.getElementById(id);
+
+    if (!element || !(element instanceof ctor)) {
+        throw new Error(`Expected element #${id}`);
+    }
+
+    return element as InstanceType<T>;
+}
+
+addEventListener("DOMContentLoaded", () => {
     const rootNode = document.getElementById("setup-dialog");
-    if (!rootNode) return;
-    ko.applyBindings(new SetupModel(getSyncInProgress()), rootNode);
-    $("#setup-dialog").show();
+    if (!rootNode || !(rootNode instanceof HTMLElement)) return;
+
+    new SetupController(rootNode, getSyncInProgress()).init();
 });
