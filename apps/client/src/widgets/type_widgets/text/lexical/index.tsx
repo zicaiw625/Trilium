@@ -55,11 +55,21 @@ function CustomEditorPersistencePlugin({ note, noteContext }: TypeWidgetProps) {
         noteType: "text",
         getData() {
             return {
-                content: JSON.stringify(editor.toJSON())
+                content: JSON.stringify(editor.toJSON().editorState)
             };
         },
         onContentChange(newContent) {
+            if (!newContent) return;
 
+            try {
+                const editorState = editor.parseEditorState(newContent);
+                editor.setEditorState(editorState);
+                editor.getEditorState().read(() => {
+                    // Clear history after loading to prevent undoing to empty state
+                });
+            } catch (err) {
+                console.error("Error parsing Lexical content", err);
+            }
         },
     });
 
