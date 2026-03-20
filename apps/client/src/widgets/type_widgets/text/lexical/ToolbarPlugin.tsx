@@ -23,6 +23,8 @@ import {
 } from 'lexical';
 import {useCallback, useEffect, useRef, useState} from 'react';
 
+import ActionButton, { ActionButtonProps } from "../../../react/ActionButton";
+
 function Divider() {
     return <div className="divider" />;
 }
@@ -87,90 +89,89 @@ export default function ToolbarPlugin() {
 
     return (
         <div className="toolbar" ref={toolbarRef}>
-            <button
+            <ToolbarButton
                 disabled={!canUndo}
                 onClick={() => {
                     editor.dispatchCommand(UNDO_COMMAND, undefined);
                 }}
-                className="toolbar-item spaced"
-                aria-label="Undo">
-                <i className="format undo" />
-            </button>
-            <button
+                text="Undo"
+                icon="bx bx-undo"
+            />
+            <ToolbarButton
                 disabled={!canRedo}
                 onClick={() => {
                     editor.dispatchCommand(REDO_COMMAND, undefined);
                 }}
-                className="toolbar-item"
-                aria-label="Redo">
-                <i className="format redo" />
-            </button>
+                text="Redo"
+                icon="bx bx-redo"
+            />
             <Divider />
-            <button
+            <ToolbarButton
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'bold');
                 }}
-                className={`toolbar-item spaced ${  isBold ? 'active' : ''}`}
-                aria-label="Format Bold">
-                <i className="format bold" />
-            </button>
-            <button
+                active={isBold}
+                text="Format Bold"
+                icon="bx bx-bold"
+            />
+            <ToolbarButton
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'italic');
                 }}
-                className={`toolbar-item spaced ${  isItalic ? 'active' : ''}`}
-                aria-label="Format Italics">
-                <i className="format italic" />
-            </button>
-            <button
+                active={isItalic}
+                text="Format Italics"
+                icon="bx bx-italic"
+            />
+            <ToolbarButton
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'underline');
                 }}
-                className={`toolbar-item spaced ${  isUnderline ? 'active' : ''}`}
-                aria-label="Format Underline">
-                <i className="format underline" />
-            </button>
-            <button
+                active={isUnderline}
+                text="Format Underline"
+                icon="bx bx-underline"
+            />
+            <ToolbarButton
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_TEXT_COMMAND, 'strikethrough');
                 }}
-                className={`toolbar-item spaced ${  isStrikethrough ? 'active' : ''}`}
-                aria-label="Format Strikethrough">
-                <i className="format strikethrough" />
-            </button>
+                active={isStrikethrough}
+                text="Format Strikethrough"
+                icon="bx bx-strikethrough"
+            />
             <Divider />
-            <button
+            <ToolbarButton
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'left');
                 }}
-                className="toolbar-item spaced"
-                aria-label="Left Align">
-                <i className="format left-align" />
-            </button>
-            <button
+                text="Left Align"
+                icon="bx bx-align-left"
+            />
+            <ToolbarButton
                 onClick={() => {
                     editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'center');
                 }}
-                className="toolbar-item spaced"
-                aria-label="Center Align">
-                <i className="format center-align" />
-            </button>
-            <button
-                onClick={() => {
-                    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'right');
-                }}
-                className="toolbar-item spaced"
-                aria-label="Right Align">
-                <i className="format right-align" />
-            </button>
-            <button
-                onClick={() => {
-                    editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'justify');
-                }}
-                className="toolbar-item"
-                aria-label="Justify Align">
-                <i className="format justify-align" />
-            </button>{' '}
+                text="Center Align"
+                icon="bx bx-align-middle"
+            />
+            <ToolbarButton
+                onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'right')}
+                text="Right Align"
+                icon="bx bx-align-right"
+            />
+            <ToolbarButton
+                onClick={() => editor.dispatchCommand(FORMAT_ELEMENT_COMMAND, 'justify')}
+                text="Justify Align"
+                icon="bx bx-align-justify"
+            />{' '}
         </div>
+    );
+}
+
+function ToolbarButton(props: Pick<ActionButtonProps, "icon" | "disabled" | "onClick" | "text">) {
+    return (
+        <ActionButton
+            className="toolbar-item"
+            {...props}
+        />
     );
 }
