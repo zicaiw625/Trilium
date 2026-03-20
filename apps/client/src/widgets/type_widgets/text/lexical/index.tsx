@@ -5,6 +5,7 @@ import {ContentEditable} from '@lexical/react/LexicalContentEditable';
 import {LexicalErrorBoundary} from '@lexical/react/LexicalErrorBoundary';
 import {HistoryPlugin} from '@lexical/react/LexicalHistoryPlugin';
 import {RichTextPlugin} from '@lexical/react/LexicalRichTextPlugin';
+import {$getRoot, CLEAR_HISTORY_COMMAND} from 'lexical';
 import { useEffect } from 'preact/hooks';
 
 import { useEditorSpacedUpdate } from '../../../react/hooks';
@@ -49,6 +50,7 @@ export default function LexicalText(props: TypeWidgetProps) {
 
 function CustomEditorPersistencePlugin({ note, noteContext }: TypeWidgetProps) {
     const [editor] = useLexicalComposerContext();
+
     const spacedUpdate = useEditorSpacedUpdate({
         note,
         noteContext,
@@ -59,19 +61,26 @@ function CustomEditorPersistencePlugin({ note, noteContext }: TypeWidgetProps) {
             };
         },
         onContentChange(newContent) {
-            if (!newContent) return;
+            if (!newContent) {
+                editor.update(() => {
+                    $getRoot().clear();
+                });
+                return;
+            }
 
             try {
                 const editorState = editor.parseEditorState(newContent);
                 editor.setEditorState(editorState);
-                editor.getEditorState().read(() => {
-                    // Clear history after loading to prevent undoing to empty state
-                });
             } catch (err) {
                 console.error("Error parsing Lexical content", err);
             }
         },
     });
+
+    // Clear the history whenever note changes.
+    useEffect(() => {
+        editor.dispatchCommand(CLEAR_HISTORY_COMMAND, undefined);
+    }, [ editor, note ]);
 
     // Detect changes in content.
     useEffect(() => {
