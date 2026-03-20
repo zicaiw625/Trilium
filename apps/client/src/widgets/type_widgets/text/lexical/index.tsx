@@ -12,6 +12,7 @@ import { useEffect } from 'preact/hooks';
 
 import { useEditorSpacedUpdate, useTriliumEvent } from '../../../react/hooks';
 import { TypeWidgetProps } from "../../type_widget";
+import ToolbarPlugin from "./ToolbarPlugin";
 
 const theme = {
     // Theme styling goes here
@@ -40,6 +41,7 @@ export default function LexicalText(props: TypeWidgetProps) {
 
     return (
         <LexicalComposer initialConfig={initialConfig}>
+            <ToolbarPlugin />
             <div className="lexical-wrapper">
                 <RichTextPlugin
                     contentEditable={<ContentEditable /> as never}
