@@ -14,10 +14,11 @@ import note_create from "../../../services/note_create";
 import options from "../../../services/options";
 import toast from "../../../services/toast";
 import utils, { hasTouchBar, isMobile } from "../../../services/utils";
-import { useEditorSpacedUpdate, useLegacyImperativeHandlers, useNoteLabel, useTriliumEvent, useTriliumOption, useTriliumOptionBool } from "../../react/hooks";
+import { useEditorSpacedUpdate, useLegacyImperativeHandlers, useNoteLabel, useNoteProperty, useTriliumEvent, useTriliumOption, useTriliumOptionBool } from "../../react/hooks";
 import TouchBar, { TouchBarButton, TouchBarGroup, TouchBarSegmentedControl } from "../../react/TouchBar";
 import { TypeWidgetProps } from "../type_widget";
 import CKEditorWithWatchdog, { CKEditorApi } from "./CKEditorWithWatchdog";
+import LexicalText from "./lexical";
 import getTemplates, { updateTemplateCache } from "./snippets.js";
 import { loadIncludedNote, refreshIncludedNote, setupImageOpening } from "./utils";
 
@@ -27,7 +28,15 @@ import { loadIncludedNote, refreshIncludedNote, setupImageOpening } from "./util
  * - Ballon block mode, in which there is a floating toolbar for the selected text, but another floating button for the entire block (i.e. paragraph).
  * - Decoupled mode, in which the editing toolbar is actually added on the client side (in {@link ClassicEditorToolbar}), see https://ckeditor.com/docs/ckeditor5/latest/examples/framework/bottom-toolbar-editor.html for an example on how the decoupled editor works.
  */
-export default function EditableText({ note, parentComponent, ntxId, noteContext }: TypeWidgetProps) {
+export default function EditableText(props: TypeWidgetProps) {
+    const mime = useNoteProperty(props.note, "mime");
+    if (mime === "application/json") {
+        return <LexicalText {...props} />;
+    }
+    return <EditableTextCKEditor {...props} />;
+}
+
+function EditableTextCKEditor({ note, parentComponent, ntxId, noteContext }: TypeWidgetProps) {
     const containerRef = useRef<HTMLDivElement>(null);
     const contentRef = useRef<string>("");
     const watchdogRef = useRef<EditorWatchdog>(null);
