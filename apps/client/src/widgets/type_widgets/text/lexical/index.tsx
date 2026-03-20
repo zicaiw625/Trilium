@@ -7,10 +7,10 @@ import {ContentEditable} from '@lexical/react/LexicalContentEditable';
 import {LexicalErrorBoundary} from '@lexical/react/LexicalErrorBoundary';
 import {HistoryPlugin} from '@lexical/react/LexicalHistoryPlugin';
 import {RichTextPlugin} from '@lexical/react/LexicalRichTextPlugin';
-import {$getRoot, CLEAR_HISTORY_COMMAND} from 'lexical';
+import {$createRangeSelection, $getRoot, $setSelection, CLEAR_HISTORY_COMMAND} from 'lexical';
 import { useEffect } from 'preact/hooks';
 
-import { useEditorSpacedUpdate } from '../../../react/hooks';
+import { useEditorSpacedUpdate, useTriliumEvent } from '../../../react/hooks';
 import { TypeWidgetProps } from "../../type_widget";
 
 const theme = {
@@ -49,6 +49,7 @@ export default function LexicalText(props: TypeWidgetProps) {
             </div>
             <HistoryPlugin />
             <AutoFocusPlugin />
+            <ScrollToEndPlugin />
             <CustomEditorPersistencePlugin {...props} />
         </LexicalComposer>
     );
@@ -94,4 +95,24 @@ function CustomEditorPersistencePlugin({ note, noteContext }: TypeWidgetProps) {
             spacedUpdate.scheduleUpdate();
         });
     }, [ spacedUpdate, editor ]);
+}
+
+function ScrollToEndPlugin() {
+    const [editor] = useLexicalComposerContext();
+
+    useTriliumEvent("scrollToEnd", () => {
+        editor.update(() => {
+            const root = $getRoot();
+            const lastChild = root.getLastDescendant();
+            if (lastChild) {
+                const selection = $createRangeSelection();
+                selection.anchor.set(lastChild.getKey(), lastChild.getTextContentSize(), 'text');
+                selection.focus.set(lastChild.getKey(), lastChild.getTextContentSize(), 'text');
+                $setSelection(selection);
+            }
+        });
+        editor.focus();
+    });
+
+    return null;
 }
