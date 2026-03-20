@@ -26,6 +26,7 @@ export const NOTE_TYPES: NoteTypeMapping[] = [
 
     // The default note type (always the first item)
     { type: "text", mime: "text/html", title: t("note_types.text"), icon: "bx-note" },
+    { type: "text", mime: "application/json", title: "Text (Lexical)", icon: "bx-note" },
     { type: "spreadsheet", mime: "application/json", title: t("note_types.spreadsheet"), icon: "bx-table", isBeta: true },
 
     // Text notes group
@@ -97,6 +98,7 @@ function getBlankNoteTypes(command?: TreeCommandNames): MenuItem<TreeCommandName
                 title: nt.title,
                 command,
                 type: nt.type,
+                mime: nt.mime,
                 uiIcon: `bx ${nt.icon}`,
                 badges: []
             };
