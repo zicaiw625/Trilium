@@ -3,7 +3,7 @@
         display: flex;
         margin-bottom: 1px;
         background: var(--classic-toolbar-vert-layout-background-color);
-        padding: 6px;
+        padding: 3px 6px;
         border-radius: 6px;
         margin: 20px;
         vertical-align: middle;
@@ -11,8 +11,8 @@
 
     .toolbar .divider {
         width: 1px;
-        background-color: #eee;
-        margin: 0 4px;
+        background-color: var(--main-border-color);
+        margin: 0 6px;
     }
 
     .toolbar .toolbar-item .text {
