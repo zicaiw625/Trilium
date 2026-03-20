@@ -7,6 +7,10 @@
     position: relative;
     margin-inline: var(--content-margin-inline);
 
+    >div[contenteditable="true"] {
+        outline: 0;
+    }
+
     .lexical-placeholder {
         opacity: 0.5;
         position: absolute;
