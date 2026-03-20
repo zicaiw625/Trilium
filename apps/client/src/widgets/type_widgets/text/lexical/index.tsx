@@ -1,3 +1,5 @@
+import "./index.css";
+
 import {AutoFocusPlugin} from '@lexical/react/LexicalAutoFocusPlugin';
 import {LexicalComposer} from '@lexical/react/LexicalComposer';
 import {useLexicalComposerContext} from '@lexical/react/LexicalComposerContext';
@@ -30,17 +32,21 @@ export default function LexicalText(props: TypeWidgetProps) {
         onError,
     };
 
+    const placeholder = (
+        <div className="lexical-placeholder">
+            Enter some text...
+        </div>
+    );
+
     return (
         <LexicalComposer initialConfig={initialConfig}>
-            <RichTextPlugin
-                contentEditable={
-                    <ContentEditable
-                        aria-placeholder={'Enter some text...'}
-                        placeholder={<div>Enter some text...</div>}
-                    />
-                }
-                ErrorBoundary={LexicalErrorBoundary}
-            />
+            <div className="lexical-wrapper">
+                <RichTextPlugin
+                    contentEditable={<ContentEditable /> as never}
+                    placeholder={placeholder as never}
+                    ErrorBoundary={LexicalErrorBoundary}
+                />
+            </div>
             <HistoryPlugin />
             <AutoFocusPlugin />
             <CustomEditorPersistencePlugin {...props} />

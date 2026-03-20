@@ -1,0 +1,16 @@
+.note-detail-editable-text .lexical-wrapper {
+    color: var(--main-text-color);
+    font-family: var(--main-font-family);
+    font-size: var(--main-font-size);
+    line-height: 1.5;
+    word-break: break-word;
+    position: relative;
+
+    .lexical-placeholder {
+        opacity: 0.5;
+        position: absolute;
+        top: 0;
+        left: 0;
+        pointer-events: none;
+    }
+}
