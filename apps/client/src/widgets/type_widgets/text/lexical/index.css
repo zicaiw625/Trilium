@@ -5,6 +5,7 @@
     line-height: 1.5;
     word-break: break-word;
     position: relative;
+    margin-inline: var(--content-margin-inline);
 
     .lexical-placeholder {
         opacity: 0.5;
