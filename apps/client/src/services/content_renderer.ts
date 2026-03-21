@@ -8,6 +8,7 @@ import FAttachment from "../entities/fattachment.js";
 import FNote from "../entities/fnote.js";
 import imageContextMenuService from "../menus/image_context_menu.js";
 import { t } from "../services/i18n.js";
+import { renderReactWidget, renderReactWidgetAtElement } from "../widgets/react/react_utils";
 import renderText from "./content_renderer_text.js";
 import renderDoc from "./doc_renderer.js";
 import { loadElkIfNeeded, postprocessMermaidSvg } from "./mermaid.js";
@@ -215,14 +216,13 @@ async function renderFile(entity: FNote | FAttachment, type: string, $renderedCo
         const url = openService.getUrlForDownload(`api/${entityType}/${entityId}/open-partial`);
         const mime = entity.mime;
 
-        const $viewer = $(`<div style="height: 100%">`);
         const VideoPreviewContent = (await import("../widgets/type_widgets/file/Video")).VideoPreviewContent;
-        render(h(VideoPreviewContent, { url, mime }), $viewer.get(0)!);
+        const $viewer = renderReactWidget(null, h(VideoPreviewContent, { url, mime }));
 
         $content.append($viewer);
     }
 
-    if (entityType === "notes" && "noteId" in entity) {
+    if (entityType === "notes" && "noteId" in entity && type !== "video") {
         // TODO: we should make this available also for attachments, but there's a problem with "Open externally" support
         //       in attachment list
         const $downloadButton = $(`
