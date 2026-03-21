@@ -1,25 +1,25 @@
 import "./ListOrGridView.css";
-import { Card, CardFrame, CardSection } from "../../react/Card";
 
+import { clsx } from "clsx";
+import { ComponentChildren, TargetedMouseEvent } from "preact";
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import { JSX } from "preact/jsx-runtime";
 
 import FNote from "../../../entities/fnote";
+import linkContextMenuService from "../../../menus/link_context_menu";
 import attribute_renderer from "../../../services/attribute_renderer";
 import content_renderer from "../../../services/content_renderer";
 import { t } from "../../../services/i18n";
 import link from "../../../services/link";
 import CollectionProperties from "../../note_bars/CollectionProperties";
+import ActionButton from "../../react/ActionButton";
+import { Card, CardFrame, CardSection } from "../../react/Card";
 import { useImperativeSearchHighlighlighting, useNoteLabel, useNoteLabelBoolean, useNoteProperty } from "../../react/hooks";
 import Icon from "../../react/Icon";
 import NoteLink from "../../react/NoteLink";
 import { ViewModeProps } from "../interface";
-import { Pager, usePagination, PaginationContext } from "../Pagination";
+import { Pager, PaginationContext,usePagination } from "../Pagination";
 import { filterChildNotes, useFilteredNoteIds } from "./utils";
-import { JSX } from "preact/jsx-runtime";
-import { clsx } from "clsx";
-import ActionButton from "../../react/ActionButton";
-import linkContextMenuService from "../../../menus/link_context_menu";
-import { ComponentChildren, TargetedMouseEvent } from "preact";
 
 const contentSizeObserver = new ResizeObserver(onContentResized);
 
@@ -53,13 +53,13 @@ export function GridView({ note, noteIds: unfilteredNoteIds, highlightedTokens }
         <div className={clsx("note-list-container use-tn-links", {"search-results": (noteType === "search")})}>
             {pageNotes?.map(childNote => (
                 <GridNoteCard key={childNote.noteId}
-                                note={childNote}
-                                parentNote={note}
-                                highlightedTokens={highlightedTokens}
-                                includeArchived={includeArchived} />
+                    note={childNote}
+                    parentNote={note}
+                    highlightedTokens={highlightedTokens}
+                    includeArchived={includeArchived} />
             ))}
         </div>
-    </NoteList>
+    </NoteList>;
 }
 
 interface NoteListProps {
@@ -82,13 +82,13 @@ function NoteList(props: NoteListProps) {
 
         {props.noteIds.length > 0 && <div className="note-list-wrapper">
             {!hasCollectionProperties && <Pager {...props.pagination} />}
-            
+
             {props.children}
 
             <Pager className="note-list-bottom-pager" {...props.pagination} />
         </div>}
 
-    </div>
+    </div>;
 }
 
 function ListNoteCard({ note, parentNote, highlightedTokens, currentLevel, expandDepth, includeArchived }: {
@@ -106,25 +106,25 @@ function ListNoteCard({ note, parentNote, highlightedTokens, currentLevel, expan
     // Reset expand state if switching to another note, or if user manually toggled expansion state.
     useEffect(() => setExpanded(currentLevel <= expandDepth), [ note, currentLevel, expandDepth ]);
 
-    let subSections: JSX.Element | undefined = undefined;
+    let subSections: JSX.Element | undefined;
     if (isExpanded) {
         subSections = <>
             <CardSection className="note-content-preview">
                 <NoteContent note={note}
-                             highlightedTokens={highlightedTokens}
-                             noChildrenList
-                             includeArchivedNotes={includeArchived} />
+                    highlightedTokens={highlightedTokens}
+                    noChildrenList
+                    includeArchivedNotes={includeArchived} />
             </CardSection>
 
             <NoteChildren note={note}
-                          parentNote={parentNote}
-                          highlightedTokens={highlightedTokens}
-                          currentLevel={currentLevel}
-                          expandDepth={expandDepth}
-                          includeArchived={includeArchived} />
-        </>
+                parentNote={parentNote}
+                highlightedTokens={highlightedTokens}
+                currentLevel={currentLevel}
+                expandDepth={expandDepth}
+                includeArchived={includeArchived} />
+        </>;
     }
-    
+
     return (
         <CardSection
             className={clsx("nested-note-list-item", "no-tooltip-preview", note.getColorClass(), {
@@ -137,14 +137,14 @@ function ListNoteCard({ note, parentNote, highlightedTokens, currentLevel, expan
             data-note-id={note.noteId}
         >
             <h5>
-                <span className={`note-expander ${isExpanded ? "bx bx-chevron-down" : "bx bx-chevron-right"}`} 
-                      onClick={() => setExpanded(!isExpanded)}/>
+                <span className={`note-expander ${isExpanded ? "bx bx-chevron-down" : "bx bx-chevron-right"}`}
+                    onClick={() => setExpanded(!isExpanded)}/>
                 <Icon className="note-icon" icon={note.getIcon()} />
                 <NoteLink className="note-book-title"
-                          notePath={notePath}
-                          noPreview
-                          showNotePath={parentNote.type === "search"}
-                          highlightedTokens={highlightedTokens} />
+                    notePath={notePath}
+                    noPreview
+                    showNotePath={parentNote.type === "search"}
+                    highlightedTokens={highlightedTokens} />
                 <NoteAttributes note={note} />
                 <NoteMenuButton notePath={notePath} />
             </h5>
@@ -164,27 +164,28 @@ function GridNoteCard(props: GridNoteCardProps) {
 
     return (
         <CardFrame className={clsx("note-book-card", "no-tooltip-preview", "block-link", props.note.getColorClass(), {
-                "archived": props.note.isArchived
-             })}
-             data-href={`#${notePath}`}
-             data-note-id={props.note.noteId}
-             onClick={(e) => link.goToLink(e)}
+            "archived": props.note.isArchived,
+            "mobile-full-width": props.note.type === "file"
+        })}
+        data-href={`#${notePath}`}
+        data-note-id={props.note.noteId}
+        onClick={(e) => link.goToLink(e)}
         >
             <h5 className={clsx("note-book-header")}>
                 <Icon className="note-icon" icon={props.note.getIcon()} />
                 <NoteLink className="note-book-title"
-                          notePath={notePath}
-                          noPreview
-                          showNotePath={props.parentNote.type === "search"}
-                          highlightedTokens={props.highlightedTokens}
+                    notePath={notePath}
+                    noPreview
+                    showNotePath={props.parentNote.type === "search"}
+                    highlightedTokens={props.highlightedTokens}
                 />
                 {!props.note.isOptions() && <NoteMenuButton notePath={notePath} />}
-                
+
             </h5>
             <NoteContent note={props.note}
-                         trim
-                         highlightedTokens={props.highlightedTokens}
-                         includeArchivedNotes={props.includeArchived}
+                trim
+                highlightedTokens={props.highlightedTokens}
+                includeArchivedNotes={props.includeArchived}
             />
         </CardFrame>
     );
@@ -222,7 +223,7 @@ export function NoteContent({ note, trim, noChildrenList, highlightedTokens, inc
 
         return () => {
             contentSizeObserver.unobserve(contentElement);
-        }
+        };
     }, []);
 
     useEffect(() => {
@@ -281,13 +282,13 @@ function NoteChildren({ note, parentNote, highlightedTokens, currentLevel, expan
 function NoteMenuButton(props: {notePath: string}) {
     const openMenu = useCallback((e: TargetedMouseEvent<HTMLElement>) => {
         linkContextMenuService.openContextMenu(props.notePath, e);
-        e.stopPropagation()
+        e.stopPropagation();
     }, [props.notePath]);
 
     return  <ActionButton className="note-book-item-menu"
-                          icon="bx bx-dots-vertical-rounded" text=""
-                          onClick={openMenu} 
-            />
+        icon="bx bx-dots-vertical-rounded" text=""
+        onClick={openMenu}
+    />;
 }
 
 function getNotePath(parentNote: FNote, childNote: FNote) {
@@ -315,7 +316,7 @@ function useExpansionDepth(note: FNote) {
 
 function onContentResized(entries: ResizeObserverEntry[], observer: ResizeObserver): void {
     for (const contentElement of entries) {
-        const isOverflowing = ((contentElement.target.scrollHeight > contentElement.target.clientHeight))
+        const isOverflowing = ((contentElement.target.scrollHeight > contentElement.target.clientHeight));
         contentElement.target.classList.toggle("note-book-content-overflowing", isOverflowing);
     }
 }

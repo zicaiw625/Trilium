@@ -12,6 +12,11 @@
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
+
+        body.mobile & {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+        }
     }
 
     .note-list-bottom-pager {
@@ -269,8 +274,9 @@
     overflow: hidden;
     user-select: none;
 
-    body.mobile & {
-        flex-basis: 150px;
+    body.mobile &.mobile-full-width {
+        grid-column-start: 1;
+        grid-column-end: 3;
     }
 
     &:hover {
