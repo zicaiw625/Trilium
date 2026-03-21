@@ -1042,6 +1042,7 @@
     "pause": "Pause (Space)",
     "back-10s": "Back 10s (Left arrow key)",
     "forward-30s": "Forward 30s",
+    "volume": "Volume",
     "mute": "Mute (M)",
     "unmute": "Unmute (M)",
     "playback-speed": "Playback speed",

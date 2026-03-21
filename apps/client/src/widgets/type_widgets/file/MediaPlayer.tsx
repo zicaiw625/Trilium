@@ -102,30 +102,47 @@ export function VolumeControl({ mediaRef }: { mediaRef: RefObject<HTMLVideoEleme
         }
     };
 
-    const toggleMute = () => {
+    const toggleMute = (e: MouseEvent) => {
+        e.stopPropagation();
         const media = mediaRef.current;
         if (!media) return;
         media.muted = !media.muted;
         setMuted(media.muted);
     };
 
+    const volumeIcon = muted || volume === 0
+        ? "bx bx-volume-mute"
+        : volume < 0.5
+            ? "bx bx-volume-low"
+            : "bx bx-volume-full";
+
     return (
-        <div class="media-volume-row">
-            <ActionButton
-                icon={muted || volume === 0 ? "bx bx-volume-mute" : volume < 0.5 ? "bx bx-volume-low" : "bx bx-volume-full"}
-                text={muted ? t("media.unmute") : t("media.mute")}
-                onClick={toggleMute}
-            />
-            <input
-                type="range"
-                class="media-volume-slider"
-                min={0}
-                max={1}
-                step={0.05}
-                value={muted ? 0 : volume}
-                onInput={onVolumeChange}
-            />
-        </div>
+        <Dropdown
+            iconAction
+            hideToggleArrow
+            buttonClassName="volume-dropdown"
+            text={<Icon icon={volumeIcon} />}
+            title={t("media.volume")}
+        >
+            <li class="media-volume-dropdown-content">
+                <button
+                    class="dropdown-item volume-mute-btn"
+                    onClick={toggleMute}
+                    title={muted ? t("media.unmute") : t("media.mute")}
+                >
+                    <Icon icon={volumeIcon} />
+                </button>
+                <input
+                    type="range"
+                    class="media-volume-slider"
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    value={muted ? 0 : volume}
+                    onInput={onVolumeChange}
+                />
+            </li>
+        </Dropdown>
     );
 }
 

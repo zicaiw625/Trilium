@@ -50,13 +50,21 @@
         }
     }
 
-    .media-volume-row {
+    .media-volume-dropdown-content {
         display: flex;
         align-items: center;
         gap: 0.25em;
+        padding: 0.5em;
+
+        .volume-mute-btn {
+            padding: 0.25em;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
 
         .media-volume-slider {
-            width: 80px;
+            width: 100px;
             cursor: pointer;
         }
     }
