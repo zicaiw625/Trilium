@@ -256,7 +256,11 @@ function OverflowMenu({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) {
         <Dropdown
             iconAction
             hideToggleArrow
+            noSelectButtonStyle
+            noDropdownListStyle
+            mobileBackdrop
             buttonClassName="overflow-menu-dropdown"
+            dropdownContainerClassName="mobile-bottom-menu"
             text={<Icon icon="bx bx-dots-horizontal-rounded" />}
             title={t("media.more-options")}
         >
