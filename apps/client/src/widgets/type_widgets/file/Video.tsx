@@ -7,8 +7,11 @@ import FNote from "../../../entities/fnote";
 import { t } from "../../../services/i18n";
 import { getUrlForDownload } from "../../../services/open";
 import ActionButton from "../../react/ActionButton";
+import Dropdown from "../../react/Dropdown";
+import { FormListHeader, FormListItem } from "../../react/FormList";
+import Icon from "../../react/Icon";
 import NoItems from "../../react/NoItems";
-import { LoopButton, PlaybackSpeed, PlayPauseButton, SeekBar, SkipButton, VolumeControl } from "./MediaPlayer";
+import { PlayPauseButton, SeekBar, SkipButton, VolumeControl } from "./MediaPlayer";
 
 const AUTO_HIDE_DELAY = 3000;
 
@@ -67,19 +70,17 @@ export function VideoPreviewContent({ url, mime }: { url: string, mime: string }
                 <SeekBar mediaRef={videoRef} />
                 <div class="media-buttons-row">
                     <div className="left">
-                        <PlaybackSpeed mediaRef={videoRef} />
-                        <RotateButton videoRef={videoRef} />
+                        <OverflowMenu videoRef={videoRef} />
                     </div>
                     <div className="center">
                         <div className="spacer" />
                         <SkipButton mediaRef={videoRef} seconds={-10} icon="bx bx-rewind" text={t("media.back-10s")} />
                         <PlayPauseButton playing={playing} togglePlayback={togglePlayback} />
                         <SkipButton mediaRef={videoRef} seconds={30} icon="bx bx-fast-forward" text={t("media.forward-30s")} />
-                        <LoopButton mediaRef={videoRef} />
+                        <div className="spacer" />
                     </div>
                     <div className="right">
                         <VolumeControl mediaRef={videoRef} />
-                        <ZoomToFitButton videoRef={videoRef} />
                         <PictureInPictureButton videoRef={videoRef} />
                         <FullscreenButton targetRef={wrapperRef} />
                     </div>
@@ -179,8 +180,49 @@ function useAutoHideControls(videoRef: RefObject<HTMLVideoElement>, playing: boo
     return { visible, onMouseMove, flash: onMouseMove };
 }
 
-function RotateButton({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) {
+const PLAYBACK_SPEEDS = [0.5, 1, 1.25, 1.5, 2];
+
+function OverflowMenu({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) {
+    const [speed, setSpeed] = useState(() => videoRef.current?.playbackRate ?? 1);
+    const [loop, setLoop] = useState(() => videoRef.current?.loop ?? false);
     const [rotation, setRotation] = useState(0);
+    const [fitted, setFitted] = useState(false);
+
+    // Sync playback rate
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+
+        setSpeed(video.playbackRate);
+        const onRateChange = () => setSpeed(video.playbackRate);
+        video.addEventListener("ratechange", onRateChange);
+        return () => video.removeEventListener("ratechange", onRateChange);
+    }, [videoRef]);
+
+    // Sync loop state
+    useEffect(() => {
+        const video = videoRef.current;
+        if (!video) return;
+        setLoop(video.loop);
+
+        const observer = new MutationObserver(() => setLoop(video.loop));
+        observer.observe(video, { attributes: true, attributeFilter: ["loop"] });
+        return () => observer.disconnect();
+    }, [videoRef]);
+
+    const selectSpeed = (rate: number) => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.playbackRate = rate;
+        setSpeed(rate);
+    };
+
+    const toggleLoop = () => {
+        const video = videoRef.current;
+        if (!video) return;
+        video.loop = !video.loop;
+        setLoop(video.loop);
+    };
 
     const rotate = () => {
         const video = videoRef.current;
@@ -190,7 +232,6 @@ function RotateButton({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) {
 
         const isSideways = next === 90 || next === 270;
         if (isSideways) {
-            // Scale down so the rotated video fits within its container.
             const container = video.parentElement;
             if (container) {
                 const ratio = container.clientWidth / container.clientHeight;
@@ -203,19 +244,7 @@ function RotateButton({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) {
         }
     };
 
-    return (
-        <ActionButton
-            icon="bx bx-rotate-right"
-            text={t("media.rotate")}
-            onClick={rotate}
-        />
-    );
-}
-
-function ZoomToFitButton({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }) {
-    const [fitted, setFitted] = useState(false);
-
-    const toggle = () => {
+    const toggleFit = () => {
         const video = videoRef.current;
         if (!video) return;
         const next = !fitted;
@@ -224,12 +253,46 @@ function ZoomToFitButton({ videoRef }: { videoRef: RefObject<HTMLVideoElement> }
     };
 
     return (
-        <ActionButton
-            className={fitted ? "active" : ""}
-            icon={fitted ? "bx bx-collapse" : "bx bx-expand"}
-            text={fitted ? t("media.zoom-reset") : t("media.zoom-to-fit")}
-            onClick={toggle}
-        />
+        <Dropdown
+            iconAction
+            hideToggleArrow
+            buttonClassName="overflow-menu-dropdown"
+            text={<Icon icon="bx bx-dots-horizontal-rounded" />}
+            title={t("media.more-options")}
+        >
+            <FormListHeader text={t("media.playback-speed")} />
+            {PLAYBACK_SPEEDS.map((rate) => (
+                <FormListItem
+                    key={rate}
+                    icon={rate === speed ? "bx bx-check" : "bx bx-empty"}
+                    active={rate === speed}
+                    onClick={() => selectSpeed(rate)}
+                >
+                    {rate}x
+                </FormListItem>
+            ))}
+            <li class="dropdown-divider" />
+            <FormListItem
+                icon="bx bx-rotate-right"
+                onClick={rotate}
+            >
+                {t("media.rotate")}
+            </FormListItem>
+            <FormListItem
+                icon={loop ? "bx bx-check" : "bx bx-repeat"}
+                active={loop}
+                onClick={toggleLoop}
+            >
+                {loop ? t("media.disable-loop") : t("media.loop")}
+            </FormListItem>
+            <FormListItem
+                icon={fitted ? "bx bx-collapse" : "bx bx-expand"}
+                active={fitted}
+                onClick={toggleFit}
+            >
+                {fitted ? t("media.zoom-reset") : t("media.zoom-to-fit")}
+            </FormListItem>
+        </Dropdown>
     );
 }
 

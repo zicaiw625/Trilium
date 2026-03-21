@@ -1055,7 +1055,8 @@
     "exit-fullscreen": "Exit fullscreen",
     "unsupported-format": "Media preview is not available for this file format:\n{{mime}}",
     "zoom-to-fit": "Zoom to fill",
-    "zoom-reset": "Reset zoom to fill"
+    "zoom-reset": "Reset zoom to fill",
+    "more-options": "More options"
   },
   "protected_session": {
     "enter_password_instruction": "Showing protected note requires entering your password:",
