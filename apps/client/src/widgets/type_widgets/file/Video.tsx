@@ -40,6 +40,7 @@ export function VideoPreviewContent({ url, mime }: { url: string, mime: string }
     }, []);
 
     const onVideoClick = useCallback((e: MouseEvent) => {
+        e.stopPropagation();
         if ((e.target as HTMLElement).closest(".media-preview-controls")) return;
         togglePlayback();
     }, [togglePlayback]);
