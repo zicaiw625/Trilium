@@ -1,8 +1,8 @@
-.note-detail-file > .video-preview-wrapper {
+.video-preview-wrapper {
     width: 100%;
     height: 100%;
     position: relative;
-    background-color: black;    
+    background-color: black;
 
     .video-preview {
         background-color: black;
