@@ -13,13 +13,20 @@ import { LoopButton, PlaybackSpeed, PlayPauseButton, SeekBar, SkipButton, Volume
 const AUTO_HIDE_DELAY = 3000;
 
 export default function VideoPreview({ note }: { note: FNote }) {
+    return <VideoPreviewContent
+        url={getUrlForDownload(`api/notes/${note.noteId}/open-partial`)}
+        mime={note.mime}
+    />;
+}
+
+export function VideoPreviewContent({ url, mime }: { url: string, mime: string }) {
     const wrapperRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const [playing, setPlaying] = useState(false);
     const [error, setError] = useState(false);
     const { visible: controlsVisible, onMouseMove, flash: flashControls } = useAutoHideControls(videoRef, playing);
 
-    useEffect(() => setError(false), [note.noteId]);
+    useEffect(() => setError(false), [ url ]);
     const onError = useCallback(() => setError(true), []);
 
     const togglePlayback = useCallback(() => {
@@ -40,7 +47,7 @@ export default function VideoPreview({ note }: { note: FNote }) {
     const onKeyDown = useKeyboardShortcuts(videoRef, wrapperRef, togglePlayback, flashControls);
 
     if (error) {
-        return <NoItems icon="bx bx-video-off" text={t("media.unsupported-format", { mime: note.mime.replace("/", "-") })} />;
+        return <NoItems icon="bx bx-video-off" text={t("media.unsupported-format", { mime: mime.replace("/", "-") })} />;
     }
 
     return (
@@ -48,8 +55,8 @@ export default function VideoPreview({ note }: { note: FNote }) {
             <video
                 ref={videoRef}
                 class="video-preview"
-                src={getUrlForDownload(`api/notes/${note.noteId}/open-partial`)}
-                datatype={note?.mime}
+                src={url}
+                datatype={mime}
                 onPlay={() => setPlaying(true)}
                 onPause={() => setPlaying(false)}
                 onError={onError}

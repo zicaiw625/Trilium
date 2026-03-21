@@ -212,12 +212,14 @@ async function renderFile(entity: FNote | FAttachment, type: string, $renderedCo
 
         $content.append($audioPreview);
     } else if (type === "video") {
-        const $videoPreview = $("<video controls></video>")
-            .attr("src", openService.getUrlForDownload(`api/${entityType}/${entityId}/open-partial`))
-            .attr("type", entity.mime)
-            .css("width", "100%");
+        const url = openService.getUrlForDownload(`api/${entityType}/${entityId}/open-partial`);
+        const mime = entity.mime;
 
-        $content.append($videoPreview);
+        const $viewer = $(`<div style="height: 100%">`);
+        const VideoPreviewContent = (await import("../widgets/type_widgets/file/Video")).VideoPreviewContent;
+        render(h(VideoPreviewContent, { url, mime }), $viewer.get(0)!);
+
+        $content.append($viewer);
     }
 
     if (entityType === "notes" && "noteId" in entity) {
