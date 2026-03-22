@@ -30,6 +30,7 @@ const TPL = /*html*/`
             max-height: 600px;
             overflow: auto;
             box-shadow: 10px 10px 93px -25px black;
+            contain: none;
         }
 
         .attr-help td {
@@ -138,6 +139,7 @@ const TPL = /*html*/`
             <td>
                 <select class="attr-input-label-type form-control">
                   <option value="text">${t("attribute_detail.text")}</option>
+                  <option value="textarea">${t("attribute_detail.textarea")}</option>
                   <option value="number">${t("attribute_detail.number")}</option>
                   <option value="boolean">${t("attribute_detail.boolean")}</option>
                   <option value="date">${t("attribute_detail.date")}</option>
@@ -343,6 +345,7 @@ export default class AttributeDetailWidget extends NoteContextAwareWidget {
     private $relatedNotesList!: JQuery<HTMLElement>;
     private $relatedNotesMoreNotes!: JQuery<HTMLElement>;
     private $attrHelp!: JQuery<HTMLElement>;
+    private $statusBar?: JQuery<HTMLElement>;
 
     private relatedNotesSpacedUpdate!: SpacedUpdate;
     private attribute!: Attribute;
@@ -579,17 +582,24 @@ export default class AttributeDetailWidget extends NoteContextAwareWidget {
             return;
         }
 
-        this.$widget
-            .css("left", detPosition.left)
-            .css("right", detPosition.right)
-            .css("top", y - offset.top + 70)
-            .css("max-height", outerHeight + y > height - 50 ? height - y - 50 : 10000);
-
         if (isNewLayout) {
+            if (!this.$statusBar) {
+                this.$statusBar = $(document.body).find(".component.status-bar");
+            }
+
+            const statusBarHeight = this.$statusBar.outerHeight() ?? 0;
+            const maxHeight = document.body.clientHeight - statusBarHeight;
             this.$widget
+                .css("left", offset.left + (typeof detPosition.left === "number" ? detPosition.left : 0))
                 .css("top", "unset")
-                .css("bottom", 70)
-                .css("max-height", "80vh");
+                .css("bottom", statusBarHeight ?? 0)
+                .css("max-height", maxHeight);
+        } else {
+            this.$widget
+                .css("left", detPosition.left)
+                .css("right", detPosition.right)
+                .css("top", y - offset.top + 70)
+                .css("max-height", outerHeight + y > height - 50 ? height - y - 50 : 10000);
         }
 
         if (focus === "name") {
@@ -697,14 +707,14 @@ export default class AttributeDetailWidget extends NoteContextAwareWidget {
                 return "label-definition";
             } else if (attribute.name.startsWith("relation:")) {
                 return "relation-definition";
-            } else {
-                return "label";
             }
+            return "label";
+
         } else if (attribute.type === "relation") {
             return "relation";
-        } else {
-            this.$title.text("");
         }
+        this.$title.text("");
+
     }
 
     updateAttributeInEditor() {
