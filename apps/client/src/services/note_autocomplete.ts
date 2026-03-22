@@ -1,6 +1,7 @@
 import type { AutocompleteApi as CoreAutocompleteApi, BaseItem } from "@algolia/autocomplete-core";
 import { createAutocomplete } from "@algolia/autocomplete-core";
 import type { MentionFeedObjectItem } from "@triliumnext/ckeditor5";
+import { type ComponentChild, h, render } from "preact";
 
 import appContext from "../components/app_context.js";
 import { bindAutocompleteInput, createHeadlessPanelController, registerHeadlessAutocompleteCloser, withHeadlessSourceDefaults } from "./autocomplete_core.js";
@@ -9,7 +10,6 @@ import froca from "./froca.js";
 import { t } from "./i18n.js";
 import noteCreateService from "./note_create.js";
 import server from "./server.js";
-import utils from "./utils.js";
 
 // this key needs to have this value, so it's hit by the tooltip
 const SELECTED_NOTE_PATH_KEY = "data-note-path";
@@ -73,39 +73,44 @@ interface ManagedInstance {
 
 const instanceMap = new WeakMap<HTMLElement, ManagedInstance>();
 
-function sanitizeHighlightedHtml(text: string, { allowBreaks = false }: { allowBreaks?: boolean } = {}): string {
+function renderHighlightedNodes(text: string, { allowBreaks = false, replaceBreaks = false }: { allowBreaks?: boolean; replaceBreaks?: boolean } = {}): ComponentChild[] {
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, "text/html");
-    const safeOutput = document.createDocumentFragment();
+    const safeOutput: ComponentChild[] = [];
+    let key = 0;
 
     const processNode = (node: Node) => {
         if (node.nodeType === Node.TEXT_NODE) {
-            safeOutput.appendChild(document.createTextNode(node.textContent || ""));
+            safeOutput.push(node.textContent || "");
         } else if (node.nodeType === Node.ELEMENT_NODE) {
             const el = node as Element;
             if (el.tagName === "B") {
-                const b = document.createElement("b");
-                b.textContent = el.textContent; // Only extract text, stripping nested potential danger
-                safeOutput.appendChild(b);
+                safeOutput.push(h("b", { key: key++ }, el.textContent || ""));
             } else if (el.tagName === "BR" && allowBreaks) {
-                safeOutput.appendChild(document.createElement("br"));
+                if (replaceBreaks) {
+                    safeOutput.push(" ");
+                    safeOutput.push(h("span", { key: key++, className: "aa-core-separator" }, "\u00b7"));
+                    safeOutput.push(" ");
+                } else {
+                    safeOutput.push(h("br", { key: key++ }));
+                }
             } else {
                 // If the tag is not allowed, just extract its text content securely
-                safeOutput.appendChild(document.createTextNode(el.textContent || ""));
+                safeOutput.push(el.textContent || "");
             }
         }
     };
 
     doc.body.childNodes.forEach(processNode);
-
-    const tmpDiv = document.createElement("div");
-    tmpDiv.appendChild(safeOutput);
-    return tmpDiv.innerHTML;
+    return safeOutput;
 }
 
-function normalizeAttributeSnippet(snippet: string): string {
-    return sanitizeHighlightedHtml(snippet, { allowBreaks: true })
-        .replace(/<br\s*\/?>/gi, " <span class=\"aa-core-separator\">&middot;</span> ");
+function renderHighlightedText(text: string): ComponentChild[] {
+    return renderHighlightedNodes(text);
+}
+
+function renderAttributeSnippet(snippet: string): ComponentChild[] {
+    return renderHighlightedNodes(snippet, { allowBreaks: true, replaceBreaks: true });
 }
 
 function getSuggestionIconClass(item: Suggestion): string {
@@ -126,54 +131,43 @@ function getSuggestionInputValue(item: Suggestion): string {
     return item.noteTitle || item.notePathTitle || item.externalLink || "";
 }
 
-function renderCommandSuggestion(item: Suggestion): string {
-    const iconClass = utils.escapeHtml(item.icon || "bx bx-terminal");
-    const titleHtml = item.highlightedNotePathTitle
-        ? sanitizeHighlightedHtml(item.highlightedNotePathTitle)
-        : utils.escapeHtml(item.noteTitle || "");
-    const descriptionHtml = item.commandDescription ? `<div class="command-description">${utils.escapeHtml(item.commandDescription)}</div>` : "";
-    const shortcutHtml = item.commandShortcut ? `<kbd class="command-shortcut">${utils.escapeHtml(item.commandShortcut)}</kbd>` : "";
+function renderCommandSuggestion(item: Suggestion): ComponentChild {
+    const titleContent = item.highlightedNotePathTitle
+        ? renderHighlightedText(item.highlightedNotePathTitle)
+        : item.noteTitle || "";
 
-    return `
-        <div class="command-suggestion">
-            <span class="command-icon ${iconClass}"></span>
-            <div class="command-content">
-                <div class="command-name">${titleHtml}</div>
-                ${descriptionHtml}
-            </div>
-            ${shortcutHtml}
-        </div>
-    `;
+    return h("div", { className: "command-suggestion" }, [
+        h("span", { className: `command-icon ${item.icon || "bx bx-terminal"}` }),
+        h("div", { className: "command-content" }, [
+            h("div", { className: "command-name" }, titleContent),
+            item.commandDescription ? h("div", { className: "command-description" }, item.commandDescription) : null
+        ]),
+        item.commandShortcut ? h("kbd", { className: "command-shortcut" }, item.commandShortcut) : null
+    ]);
 }
 
-function renderNoteSuggestion(item: Suggestion): string {
-    const iconClass = utils.escapeHtml(getSuggestionIconClass(item));
-    const titleHtml = item.highlightedNotePathTitle
-        ? sanitizeHighlightedHtml(item.highlightedNotePathTitle)
-        : utils.escapeHtml(item.noteTitle || item.notePathTitle || item.externalLink || "");
-    const shortcutHtml = item.action === "search-notes"
-        ? `<kbd class="aa-core-shortcut">Ctrl+Enter</kbd>`
-        : "";
-    const attributeHtml = item.highlightedAttributeSnippet
-        ? `<div class="search-result-attributes">${normalizeAttributeSnippet(item.highlightedAttributeSnippet)}</div>`
-        : "";
-    const contentClass = item.action === "search-notes" ? "note-suggestion search-notes-action" : "note-suggestion";
+function renderNoteSuggestion(item: Suggestion): ComponentChild {
+    const titleContent = item.highlightedNotePathTitle
+        ? renderHighlightedText(item.highlightedNotePathTitle)
+        : item.noteTitle || item.notePathTitle || item.externalLink || "";
 
-    return `
-        <div class="${contentClass}">
-            <span class="icon ${iconClass}"></span>
-            <span class="text">
-                <span class="aa-core-primary-row">
-                    <span class="search-result-title">${titleHtml}</span>
-                    ${shortcutHtml}
-                </span>
-                ${attributeHtml}
-            </span>
-        </div>
-    `;
+    return h("div", {
+        className: item.action === "search-notes" ? "note-suggestion search-notes-action" : "note-suggestion"
+    }, [
+        h("span", { className: `icon ${getSuggestionIconClass(item)}` }),
+        h("span", { className: "text" }, [
+            h("span", { className: "aa-core-primary-row" }, [
+                h("span", { className: "search-result-title" }, titleContent),
+                item.action === "search-notes" ? h("kbd", { className: "aa-core-shortcut" }, "Ctrl+Enter") : null
+            ]),
+            item.highlightedAttributeSnippet
+                ? h("div", { className: "search-result-attributes" }, renderAttributeSnippet(item.highlightedAttributeSnippet))
+                : null
+        ])
+    ]);
 }
 
-function renderSuggestion(item: Suggestion): string {
+function renderSuggestion(item: Suggestion): ComponentChild {
     if (item.action === "command") {
         return renderCommandSuggestion(item);
     }
@@ -205,58 +199,52 @@ function renderItems(
     onDeactivate: () => void
 ) {
     if (items.length === 0) {
+        render(null, panelEl);
         panelEl.style.display = "none";
         return;
     }
 
-    const list = document.createElement("div");
-    list.className = "aa-core-list aa-suggestions";
-    list.setAttribute("role", "listbox");
-
-    items.forEach((item, index) => {
-        const itemEl = document.createElement("div");
-        itemEl.className = "aa-core-item aa-suggestion";
-        itemEl.setAttribute("role", "option");
-        itemEl.setAttribute("aria-selected", index === activeId ? "true" : "false");
-        itemEl.dataset.index = String(index);
-
+    render(h("div", { className: "aa-core-list aa-suggestions", role: "listbox" }, items.map((item, index) => {
+        const classNames = [ "aa-core-item", "aa-suggestion" ];
         if (item.action) {
-            itemEl.classList.add(`${item.action}-action`);
+            classNames.push(`${item.action}-action`);
         }
         if (index === activeId) {
-            itemEl.classList.add("aa-core-item--active", "aa-cursor");
+            classNames.push("aa-core-item--active", "aa-cursor");
         }
 
-        itemEl.innerHTML = renderSuggestion(item);
-        itemEl.onmousemove = () => {
-            if (activeId === index) {
-                return;
+        return h("div", {
+            key: `${item.action || "note"}-${item.notePath || item.externalLink || item.commandId || item.noteTitle || index}-${index}`,
+            className: classNames.join(" "),
+            role: "option",
+            "aria-selected": index === activeId,
+            "data-index": String(index),
+            onMouseMove: () => {
+                if (activeId === index) {
+                    return;
+                }
+
+                onDeactivate();
+                window.setTimeout(() => {
+                    onActivate(index);
+                }, 0);
+            },
+            onMouseLeave: (event: MouseEvent) => {
+                const relatedTarget = event.relatedTarget;
+                const currentTarget = event.currentTarget;
+                if (relatedTarget instanceof HTMLElement && currentTarget instanceof HTMLElement && currentTarget.contains(relatedTarget)) {
+                    return;
+                }
+
+                onDeactivate();
+            },
+            onMouseDown: (event: MouseEvent) => {
+                event.preventDefault();
+                event.stopPropagation();
+                void onSelect(item);
             }
-
-            onDeactivate();
-            window.setTimeout(() => {
-                onActivate(index);
-            }, 0);
-        };
-        itemEl.onmouseleave = (event) => {
-            const relatedTarget = event.relatedTarget;
-            if (relatedTarget instanceof HTMLElement && itemEl.contains(relatedTarget)) {
-                return;
-            }
-
-            onDeactivate();
-        };
-        itemEl.onmousedown = (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            void onSelect(item);
-        };
-
-        list.appendChild(itemEl);
-    });
-
-    panelEl.innerHTML = "";
-    panelEl.appendChild(list);
+        }, renderSuggestion(item));
+    })), panelEl);
     panelEl.style.display = "block";
 }
 
@@ -778,6 +766,7 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
     const cleanup = () => {
         unregisterGlobalCloser();
         cleanupInputBindings();
+        render(null, panelEl);
         panelController.destroy();
     };
 
