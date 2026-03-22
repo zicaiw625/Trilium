@@ -9,6 +9,7 @@ import froca from "./froca.js";
 import { t } from "./i18n.js";
 import noteCreateService from "./note_create.js";
 import server from "./server.js";
+import utils from "./utils.js";
 
 // this key needs to have this value, so it's hit by the tooltip
 const SELECTED_NOTE_PATH_KEY = "data-note-path";
@@ -72,15 +73,6 @@ interface ManagedInstance {
 
 const instanceMap = new WeakMap<HTMLElement, ManagedInstance>();
 
-function escapeHtml(text: string): string {
-    return text
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#39;");
-}
-
 function sanitizeHighlightedHtml(text: string, { allowBreaks = false }: { allowBreaks?: boolean } = {}): string {
     const parser = new DOMParser();
     const doc = parser.parseFromString(text, "text/html");
@@ -135,12 +127,12 @@ function getSuggestionInputValue(item: Suggestion): string {
 }
 
 function renderCommandSuggestion(item: Suggestion): string {
-    const iconClass = escapeHtml(item.icon || "bx bx-terminal");
+    const iconClass = utils.escapeHtml(item.icon || "bx bx-terminal");
     const titleHtml = item.highlightedNotePathTitle
         ? sanitizeHighlightedHtml(item.highlightedNotePathTitle)
-        : escapeHtml(item.noteTitle || "");
-    const descriptionHtml = item.commandDescription ? `<div class="command-description">${escapeHtml(item.commandDescription)}</div>` : "";
-    const shortcutHtml = item.commandShortcut ? `<kbd class="command-shortcut">${escapeHtml(item.commandShortcut)}</kbd>` : "";
+        : utils.escapeHtml(item.noteTitle || "");
+    const descriptionHtml = item.commandDescription ? `<div class="command-description">${utils.escapeHtml(item.commandDescription)}</div>` : "";
+    const shortcutHtml = item.commandShortcut ? `<kbd class="command-shortcut">${utils.escapeHtml(item.commandShortcut)}</kbd>` : "";
 
     return `
         <div class="command-suggestion">
@@ -155,10 +147,10 @@ function renderCommandSuggestion(item: Suggestion): string {
 }
 
 function renderNoteSuggestion(item: Suggestion): string {
-    const iconClass = escapeHtml(getSuggestionIconClass(item));
+    const iconClass = utils.escapeHtml(getSuggestionIconClass(item));
     const titleHtml = item.highlightedNotePathTitle
         ? sanitizeHighlightedHtml(item.highlightedNotePathTitle)
-        : escapeHtml(item.noteTitle || item.notePathTitle || item.externalLink || "");
+        : utils.escapeHtml(item.noteTitle || item.notePathTitle || item.externalLink || "");
     const shortcutHtml = item.action === "search-notes"
         ? `<kbd class="aa-core-shortcut">Ctrl+Enter</kbd>`
         : "";
