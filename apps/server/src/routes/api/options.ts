@@ -103,18 +103,6 @@ const ALLOWED_OPTIONS = new Set<OptionNames>([
     "seenCallToActions",
     "experimentalFeatures",
     "newLayout",
-
-    // AI/LLM integration options
-    "aiEnabled",
-    "aiTemperature",
-    "aiSystemPrompt",
-    "aiSelectedProvider",
-    "openaiBaseUrl",
-    "openaiDefaultModel",
-    "anthropicBaseUrl",
-    "anthropicDefaultModel",
-    "ollamaBaseUrl",
-    "ollamaDefaultModel",
     "mfaEnabled",
     "mfaMethod"
 ]);
@@ -154,7 +142,7 @@ function getOptions() {
     return resultMap;
 }
 
-function updateOption(req: Request) {
+function updateOption(req: Request<{ name: string; value: string }>) {
     const { name, value } = req.params;
 
     if (!update(name, value)) {

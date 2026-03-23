@@ -1,4 +1,5 @@
 import { sanitizeUrl } from "@braintree/sanitize-url";
+import { renderSpreadsheetToHtml } from "@triliumnext/commons";
 import { highlightAuto } from "@triliumnext/highlightjs";
 import ejs from "ejs";
 import escapeHtml from "escape-html";
@@ -289,6 +290,8 @@ export function getContent(note: SNote | BNote) {
         result.isEmpty = true;
     } else if (note.type === "webView") {
         renderWebView(note, result);
+    } else if (note.type === "spreadsheet") {
+        renderSpreadsheet(result);
     } else {
         result.content = `<p>${t("content_renderer.note-cannot-be-displayed")}</p>`;
     }
@@ -492,6 +495,14 @@ function renderFile(note: SNote | BNote, result: Result) {
         result.content = `<iframe class="pdf-view" src="../pdfjs/web/viewer.html?file=../../../share/api/notes/${note.noteId}/view"></iframe>`;
     } else {
         result.content = `<button type="button" onclick="location.href='api/notes/${note.noteId}/download'">Download file</button>`;
+    }
+}
+
+function renderSpreadsheet(result: Result) {
+    if (typeof result.content !== "string" || !result.content?.trim()) {
+        result.isEmpty = true;
+    } else {
+        result.content = renderSpreadsheetToHtml(result.content);
     }
 }
 

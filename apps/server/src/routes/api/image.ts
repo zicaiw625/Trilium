@@ -1,21 +1,20 @@
-"use strict";
-
-import imageService from "../../services/image.js";
-import becca from "../../becca/becca.js";
-import fs from "fs";
 import type { Request, Response } from "express";
+import fs from "fs";
+
+import becca from "../../becca/becca.js";
 import type BNote from "../../becca/entities/bnote.js";
 import type BRevision from "../../becca/entities/brevision.js";
+import imageService from "../../services/image.js";
 import { RESOURCE_DIR } from "../../services/resource_dir.js";
 import { sanitizeSvg, setSvgHeaders } from "../../services/svg_sanitizer.js";
 
-function returnImageFromNote(req: Request, res: Response) {
+function returnImageFromNote(req: Request<{ noteId: string }>, res: Response) {
     const image = becca.getNote(req.params.noteId);
 
     return returnImageInt(image, res);
 }
 
-function returnImageFromRevision(req: Request, res: Response) {
+function returnImageFromRevision(req: Request<{ revisionId: string }>, res: Response) {
     const image = becca.getRevision(req.params.revisionId);
 
     return returnImageInt(image, res);
@@ -25,7 +24,7 @@ function returnImageInt(image: BNote | BRevision | null, res: Response) {
     if (!image) {
         res.set("Content-Type", "image/png");
         return res.send(fs.readFileSync(`${RESOURCE_DIR}/db/image-deleted.png`));
-    } else if (!["image", "canvas", "mermaid", "mindMap"].includes(image.type)) {
+    } else if (!["image", "canvas", "mermaid", "mindMap", "spreadsheet"].includes(image.type)) {
         return res.sendStatus(400);
     }
 
@@ -35,6 +34,8 @@ function returnImageInt(image: BNote | BRevision | null, res: Response) {
         renderSvgAttachment(image, res, "mermaid-export.svg");
     } else if (image.type === "mindMap") {
         renderSvgAttachment(image, res, "mindmap-export.svg");
+    } else if (image.type === "spreadsheet") {
+        renderPngAttachment(image, res, "spreadsheet-export.png");
     } else if (image.mime === "image/svg+xml") {
         // SVG images require sanitization to prevent stored XSS
         const content = image.getContent();
@@ -68,7 +69,19 @@ export function renderSvgAttachment(image: BNote | BRevision, res: Response, att
     res.send(sanitized);
 }
 
-function returnAttachedImage(req: Request, res: Response) {
+export function renderPngAttachment(image: BNote | BRevision, res: Response, attachmentName: string) {
+    const attachment = image.getAttachmentByTitle(attachmentName);
+
+    if (attachment) {
+        res.set("Content-Type", "image/png");
+        res.set("Cache-Control", "no-cache, no-store, must-revalidate");
+        res.send(attachment.getContent());
+    } else {
+        res.sendStatus(404);
+    }
+}
+
+function returnAttachedImage(req: Request<{ attachmentId: string }>, res: Response) {
     const attachment = becca.getAttachment(req.params.attachmentId);
 
     if (!attachment) {
@@ -93,7 +106,7 @@ function returnAttachedImage(req: Request, res: Response) {
     }
 }
 
-function updateImage(req: Request) {
+function updateImage(req: Request<{ noteId: string }>) {
     const { noteId } = req.params;
     const { file } = req;
 

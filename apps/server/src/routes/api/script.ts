@@ -1,11 +1,12 @@
-"use strict";
 
-import scriptService, { type Bundle } from "../../services/script.js";
-import attributeService from "../../services/attributes.js";
-import becca from "../../becca/becca.js";
-import syncService from "../../services/sync.js";
-import sql from "../../services/sql.js";
+
 import type { Request } from "express";
+
+import becca from "../../becca/becca.js";
+import attributeService from "../../services/attributes.js";
+import scriptService, { type Bundle } from "../../services/script.js";
+import sql from "../../services/sql.js";
+import syncService from "../../services/sync.js";
 import { safeExtractMessageAndStackFromError } from "../../services/utils.js";
 import { assertScriptingEnabled, isScriptingEnabled } from "../../services/scripting_guard.js";
 
@@ -45,7 +46,7 @@ async function exec(req: Request) {
     }
 }
 
-function run(req: Request) {
+function run(req: Request<{ noteId: string }>) {
     assertScriptingEnabled();
     const note = becca.getNoteOrThrow(req.params.noteId);
 
@@ -78,12 +79,12 @@ function getStartupBundles(req: Request) {
     if (!process.env.TRILIUM_SAFE_MODE) {
         if (req.query.mobile === "true") {
             return getBundlesWithLabel("run", "mobileStartup");
-        } else {
-            return getBundlesWithLabel("run", "frontendStartup");
-        }
-    } else {
-        return [];
-    }
+        } 
+        return getBundlesWithLabel("run", "frontendStartup");
+        
+    } 
+    return [];
+    
 }
 
 function getWidgetBundles() {
@@ -93,12 +94,12 @@ function getWidgetBundles() {
 
     if (!process.env.TRILIUM_SAFE_MODE) {
         return getBundlesWithLabel("widget");
-    } else {
-        return [];
-    }
+    } 
+    return [];
+    
 }
 
-function getRelationBundles(req: Request) {
+function getRelationBundles(req: Request<{ noteId: string, relationName: string }>) {
     if (!isScriptingEnabled()) {
         return [];
     }
@@ -131,7 +132,7 @@ function getRelationBundles(req: Request) {
     return bundles;
 }
 
-function getBundle(req: Request) {
+function getBundle(req: Request<{ noteId: string }>) {
     assertScriptingEnabled();
 
     const note = becca.getNoteOrThrow(req.params.noteId);

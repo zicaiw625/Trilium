@@ -1,9 +1,8 @@
-"use strict";
-
-import sql from "../../services/sql.js";
-import becca from "../../becca/becca.js";
 import type { Request } from "express";
+
+import becca from "../../becca/becca.js";
 import ValidationError from "../../errors/validation_error.js";
+import sql from "../../services/sql.js";
 import { safeExtractMessageAndStackFromError } from "../../services/utils.js";
 import { assertSqlConsoleEnabled } from "../../services/scripting_guard.js";
 
@@ -26,7 +25,7 @@ function getSchema() {
     return tables;
 }
 
-function execute(req: Request) {
+function execute(req: Request<{ noteId: string }>) {
     assertSqlConsoleEnabled();
     const note = becca.getNoteOrThrow(req.params.noteId);
 

@@ -1612,11 +1612,7 @@ body:not(.mobile) #launcher-pane.horizontal .dropdown-submenu > .dropdown-menu {
     }
 
     body.mobile #launcher-container {
-        justify-content: center;
-    }
-
-    body.mobile #launcher-container button {
-        margin: 0 16px;
+        justify-content: space-evenly;
     }
 
     body.mobile .modal.show {
@@ -2630,7 +2626,7 @@ iframe.print-iframe {
             }
         }
 
-        #root-widget.virtual-keyboard-opened .note-split:not(.active) {
+        body:not(.ios) #root-widget.virtual-keyboard-opened .note-split:not(.active) {
             max-height: 80px;
             opacity: 0.4;
         }
