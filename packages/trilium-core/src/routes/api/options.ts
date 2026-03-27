@@ -103,26 +103,11 @@ const ALLOWED_OPTIONS = new Set<OptionNames>([
     "seenCallToActions",
     "experimentalFeatures",
     "newLayout",
-
-    // AI/LLM integration options
-    "aiEnabled",
-    "aiTemperature",
-    "aiSystemPrompt",
-    "aiSelectedProvider",
-    "openaiApiKey",
-    "openaiBaseUrl",
-    "openaiDefaultModel",
-    "anthropicApiKey",
-    "anthropicBaseUrl",
-    "anthropicDefaultModel",
-    "ollamaBaseUrl",
-    "ollamaDefaultModel",
     "mfaEnabled",
     "mfaMethod"
 ]);
 
 function getOptions() {
-    console.log("Got opts");
     const optionMap = optionService.getOptionMap();
     const resultMap: Record<string, string> = {};
 
@@ -143,7 +128,7 @@ function getOptions() {
     return resultMap;
 }
 
-function updateOption(req: Request) {
+function updateOption(req: Request<{ name: string; value: string }>) {
     const { name, value } = req.params;
 
     if (!update(name, value)) {

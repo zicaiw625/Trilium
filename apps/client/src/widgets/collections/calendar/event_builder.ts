@@ -1,16 +1,22 @@
 import { EventInput, EventSourceFuncArg, EventSourceInput } from "@fullcalendar/core/index.js";
-import froca from "../../../services/froca";
-import { formatDateToLocalISO, getCustomisableLabel, getMonthsInDateRange, offsetDate } from "./utils";
-import FNote from "../../../entities/fnote";
-import server from "../../../services/server";
+import { dayjs } from "@triliumnext/commons";
 import clsx from "clsx";
+import { start } from "repl";
+import * as rruleLib from 'rrule';
+
+import FNote from "../../../entities/fnote";
+import froca from "../../../services/froca";
+import server from "../../../services/server";
+import toastService from "../../../services/toast";
+import { getCustomisableLabel, getMonthsInDateRange } from "./utils";
 
 interface Event {
     startDate: string,
     endDate?: string | null,
     startTime?: string | null,
     endTime?: string | null,
-    isArchived?: boolean;
+    isArchived?: boolean,
+    recurrence?: string | null;
 }
 
 export async function buildEvents(noteIds: string[]) {
@@ -27,8 +33,17 @@ export async function buildEvents(noteIds: string[]) {
         const endDate = getCustomisableLabel(note, "endDate", "calendar:endDate");
         const startTime = getCustomisableLabel(note, "startTime", "calendar:startTime");
         const endTime = getCustomisableLabel(note, "endTime", "calendar:endTime");
+        const recurrence = getCustomisableLabel(note, "recurrence", "calendar:recurrence");
         const isArchived = note.hasLabel("archived");
-        events.push(await buildEvent(note, { startDate, endDate, startTime, endTime, isArchived }));
+        try {
+            events.push(await buildEvent(note, { startDate, endDate, startTime, endTime, recurrence, isArchived }));
+        } catch (error) {
+            if (error instanceof Error) {
+                const errorMessage = error.message;
+                toastService.showError(errorMessage);
+                console.error(errorMessage);
+            }
+        }
     }
 
     return events.flat();
@@ -58,6 +73,7 @@ export async function buildEventsForCalendar(note: FNote, e: EventSourceFuncArg)
 
         events.push(await buildEvent(dateNote, { startDate }));
 
+
         if (dateNote.hasChildren()) {
             const childNoteIds = await dateNote.getSubtreeNoteIds();
             for (const childNoteId of childNoteIds) {
@@ -78,7 +94,7 @@ export async function buildEventsForCalendar(note: FNote, e: EventSourceFuncArg)
     return events.flat();
 }
 
-export async function buildEvent(note: FNote, { startDate, endDate, startTime, endTime, isArchived }: Event) {
+export async function buildEvent(note: FNote, { startDate, endDate, startTime, endTime, recurrence, isArchived }: Event) {
     const customTitleAttributeName = note.getLabelValue("calendar:title");
     const titles = await parseCustomTitle(customTitleAttributeName, note);
     const colorClass = note.getColorClass();
@@ -97,15 +113,17 @@ export async function buildEvent(note: FNote, { startDate, endDate, startTime, e
 
         startDate = (startTime ? `${startDate}T${startTime}:00` : startDate);
         if (!startTime) {
-            const endDateOffset = offsetDate(endDate ?? startDate, 1);
-            if (endDateOffset) {
-                endDate = formatDateToLocalISO(endDateOffset);
+            if (endDate) {
+                endDate = dayjs(endDate).add(1, "day").format("YYYY-MM-DD");
+            } else if (startDate) {
+                endDate = dayjs(startDate).add(1, "day").format("YYYY-MM-DD");
             }
         }
 
         endDate = (endTime ? `${endDate}T${endTime}:00` : endDate);
         const eventData: EventInput = {
-            title: title,
+            id: note.noteId,
+            title,
             start: startDate,
             url: `#${note.noteId}?popup`,
             noteId: note.noteId,
@@ -115,6 +133,30 @@ export async function buildEvent(note: FNote, { startDate, endDate, startTime, e
         };
         if (endDate) {
             eventData.end = endDate;
+        }
+
+        if (recurrence) {
+            // Generate rrule string
+            const rruleString = `DTSTART:${dayjs(startDate).format("YYYYMMDD[T]HHmmss")}\n${recurrence}`;
+
+            // Validate rrule string
+            let rruleValid = true;
+            try {
+                rruleLib.rrulestr(rruleString, { forceset: true }) as rruleLib.RRuleSet;
+            } catch {
+                rruleValid = false;
+            }
+
+            if (rruleValid) {
+                delete eventData.end;
+                eventData.rrule = rruleString;
+                if (endDate){
+                    const duration = dayjs.duration(dayjs(endDate).diff(dayjs(startDate)));
+                    eventData.duration = duration.format("HH:mm");
+                }
+            } else {
+                throw new Error(`Note "${note.noteId} ${note.title}" has an invalid #recurrence string ${recurrence}. Excluding...`);
+            }
         }
         events.push(eventData);
     }
@@ -148,12 +190,12 @@ async function parseCustomTitle(customTitlettributeName: string | null, note: FN
 }
 
 async function buildDisplayedAttributes(note: FNote, calendarDisplayedAttributes: string[]) {
-    const filteredDisplayedAttributes = note.getAttributes().filter((attr): boolean => calendarDisplayedAttributes.includes(attr.name))
+    const filteredDisplayedAttributes = note.getAttributes().filter((attr): boolean => calendarDisplayedAttributes.includes(attr.name));
     const result: Array<[string, string]> = [];
 
     for (const attribute of filteredDisplayedAttributes) {
         if (attribute.type === "label") result.push([attribute.name, attribute.value]);
-        else result.push([attribute.name, (await attribute.getTargetNote())?.title || ""])
+        else result.push([attribute.name, (await attribute.getTargetNote())?.title || ""]);
     }
 
     return result;

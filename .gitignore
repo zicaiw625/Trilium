@@ -46,9 +46,11 @@ upload
 
 /.direnv
 /result
-.svelte-kit
 
 # docs
 site/
 apps/*/coverage
 scripts/translation/.language*.json
+
+# AI
+.claude/settings.local.json

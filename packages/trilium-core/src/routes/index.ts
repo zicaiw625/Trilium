@@ -8,7 +8,23 @@ import recentNotesRoute from "./api/recent_notes";
 import otherRoute from "./api/others";
 import branchesApiRoute from "./api/branches";
 import appInfoRoute from "./api/app_info";
+import statsRoute from "./api/stats";
 import AbstractBeccaEntity from "../becca/entities/abstract_becca_entity";
+import cloningApiRoute from "./api/cloning";
+import sqlRoute from "./api/sql";
+import attributesRoute from "./api/attributes";
+import revisionsApiRoute from "./api/revisions";
+import relationMapApiRoute from "./api/relation-map";
+import recentChangesApiRoute from "./api/recent_changes";
+import bulkActionRoute from "./api/bulk_action";
+import searchRoute from "./api/search";
+import specialNotesRoute from "./api/special_notes";
+import syncApiRoute from "./api/sync";
+import autocompleteApiRoute from "./api/autocomplete";
+import similarNotesRoute from "./api/similar_notes";
+import imageRoute from "./api/image";
+import setupApiRoute from "./api/setup";
+import filesRoute from "./api/files";
 
 // TODO: Deduplicate with routes.ts
 const GET = "get",
@@ -17,7 +33,20 @@ const GET = "get",
     PATCH = "patch",
     DEL = "delete";
 
-export function buildSharedApiRoutes(apiRoute: any) {
+interface SharedApiRoutesContext {
+    route: any;
+    asyncRoute: any;
+    apiRoute: any;
+    asyncApiRoute: any;
+    checkApiAuth: any;
+    apiResultHandler: any;
+    checkApiAuthOrElectron: any;
+    checkAppNotInitialized: any;
+    loginRateLimiter: any;
+    checkCredentials: any;
+}
+
+export function buildSharedApiRoutes({ route, asyncRoute, apiRoute, asyncApiRoute, checkApiAuth, apiResultHandler, checkApiAuthOrElectron, checkAppNotInitialized, checkCredentials, loginRateLimiter }: SharedApiRoutesContext) {
     apiRoute(GET, '/api/tree', treeApiRoute.getTree);
     apiRoute(PST, '/api/tree/load', treeApiRoute.load);
 
@@ -55,6 +84,26 @@ export function buildSharedApiRoutes(apiRoute: any) {
     apiRoute(PUT, "/api/attachments/:attachmentId/rename", attachmentsApiRoute.renameAttachment);
     apiRoute(GET, "/api/attachments/:attachmentId/blob", attachmentsApiRoute.getAttachmentBlob);
 
+    apiRoute(GET, "/api/notes/:noteId/attributes", attributesRoute.getEffectiveNoteAttributes);
+    apiRoute(PST, "/api/notes/:noteId/attributes", attributesRoute.addNoteAttribute);
+    apiRoute(PUT, "/api/notes/:noteId/attributes", attributesRoute.updateNoteAttributes);
+    apiRoute(PUT, "/api/notes/:noteId/attribute", attributesRoute.updateNoteAttribute);
+    apiRoute(PUT, "/api/notes/:noteId/set-attribute", attributesRoute.setNoteAttribute);
+    apiRoute(PUT, "/api/notes/:noteId/relations/:name/to/:targetNoteId", attributesRoute.createRelation);
+    apiRoute(DEL, "/api/notes/:noteId/relations/:name/to/:targetNoteId", attributesRoute.deleteRelation);
+    apiRoute(DEL, "/api/notes/:noteId/attributes/:attributeId", attributesRoute.deleteNoteAttribute);
+    apiRoute(GET, "/api/attribute-names/", attributesRoute.getAttributeNames);
+    apiRoute(GET, "/api/attribute-values/:attributeName", attributesRoute.getValuesForAttribute);
+
+    apiRoute(GET, "/api/notes/:noteId/revisions", revisionsApiRoute.getRevisions);
+    apiRoute(DEL, "/api/notes/:noteId/revisions", revisionsApiRoute.eraseAllRevisions);
+    apiRoute(PST, "/api/revisions/erase-all-excess-revisions", revisionsApiRoute.eraseAllExcessRevisions);
+    apiRoute(GET, "/api/revisions/:revisionId", revisionsApiRoute.getRevision);
+    apiRoute(GET, "/api/revisions/:revisionId/blob", revisionsApiRoute.getRevisionBlob);
+    apiRoute(DEL, "/api/revisions/:revisionId", revisionsApiRoute.eraseRevision);
+    apiRoute(PST, "/api/revisions/:revisionId/restore", revisionsApiRoute.restoreRevision);
+    apiRoute(GET, "/api/edited-notes/:date", revisionsApiRoute.getEditedNotesOnDate);
+
     apiRoute(PUT, "/api/branches/:branchId/move-to/:parentBranchId", branchesApiRoute.moveBranchToParent);
     apiRoute(PUT, "/api/branches/:branchId/move-before/:beforeBranchId", branchesApiRoute.moveBranchBeforeNote);
     apiRoute(PUT, "/api/branches/:branchId/move-after/:afterBranchId", branchesApiRoute.moveBranchAfterNote);
@@ -64,6 +113,63 @@ export function buildSharedApiRoutes(apiRoute: any) {
     apiRoute(PUT, "/api/branches/:branchId/set-prefix", branchesApiRoute.setPrefix);
     apiRoute(PUT, "/api/branches/set-prefix-batch", branchesApiRoute.setPrefixBatch);
 
+    route(GET, "/api/revisions/:revisionId/image/:filename", [checkApiAuthOrElectron], imageRoute.returnImageFromRevision);
+    route(GET, "/api/attachments/:attachmentId/image/:filename", [checkApiAuthOrElectron], imageRoute.returnAttachedImage);
+    route(GET, "/api/images/:noteId/:filename", [checkApiAuthOrElectron], imageRoute.returnImageFromNote);
+
+    // group of the services below are meant to be executed from the outside
+    route(GET, "/api/setup/status", [], setupApiRoute.getStatus, apiResultHandler);
+    asyncRoute(PST, "/api/setup/new-document", [checkAppNotInitialized], setupApiRoute.setupNewDocument, apiResultHandler);
+    asyncRoute(PST, "/api/setup/sync-from-server", [checkAppNotInitialized], setupApiRoute.setupSyncFromServer, apiResultHandler);
+    route(GET, "/api/setup/sync-seed", [loginRateLimiter, checkCredentials], setupApiRoute.getSyncSeed, apiResultHandler);
+    asyncRoute(PST, "/api/setup/sync-seed", [checkAppNotInitialized], setupApiRoute.saveSyncSeed, apiResultHandler);
+
+    asyncApiRoute(PST, "/api/sync/test", syncApiRoute.testSync);
+    asyncApiRoute(PST, "/api/sync/now", syncApiRoute.syncNow);
+    apiRoute(PST, "/api/sync/fill-entity-changes", syncApiRoute.fillEntityChanges);
+    apiRoute(PST, "/api/sync/force-full-sync", syncApiRoute.forceFullSync);
+    route(GET, "/api/sync/check", [checkApiAuth], syncApiRoute.checkSync, apiResultHandler);
+    route(GET, "/api/sync/changed", [checkApiAuth], syncApiRoute.getChanged, apiResultHandler);
+    route(PUT, "/api/sync/update", [checkApiAuth], syncApiRoute.update, apiResultHandler);
+    route(PST, "/api/sync/finished", [checkApiAuth], syncApiRoute.syncFinished, apiResultHandler);
+    route(PST, "/api/sync/check-entity-changes", [checkApiAuth], syncApiRoute.checkEntityChanges, apiResultHandler);
+    route(PST, "/api/sync/queue-sector/:entityName/:sector", [checkApiAuth], syncApiRoute.queueSector, apiResultHandler);
+    route(GET, "/api/sync/stats", [], syncApiRoute.getStats, apiResultHandler);
+
+    apiRoute(GET, "/api/quick-search/:searchString", searchRoute.quickSearch);
+    apiRoute(GET, "/api/search-note/:noteId", searchRoute.searchFromNote);
+    apiRoute(PST, "/api/search-and-execute-note/:noteId", searchRoute.searchAndExecute);
+    apiRoute(PST, "/api/search-related", searchRoute.getRelatedNotes);
+    apiRoute(GET, "/api/search/:searchString", searchRoute.search);
+    apiRoute(GET, "/api/search-templates", searchRoute.searchTemplates);
+
+    apiRoute(GET, "/api/autocomplete", autocompleteApiRoute.getAutocomplete);
+    apiRoute(GET, "/api/autocomplete/notesCount", autocompleteApiRoute.getNotesCount);
+
+    apiRoute(PUT, "/api/notes/:noteId/clone-to-branch/:parentBranchId", cloningApiRoute.cloneNoteToBranch);
+    apiRoute(PUT, "/api/notes/:noteId/toggle-in-parent/:parentNoteId/:present", cloningApiRoute.toggleNoteInParent);
+    apiRoute(PUT, "/api/notes/:noteId/clone-to-note/:parentNoteId", cloningApiRoute.cloneNoteToParentNote);
+    apiRoute(PUT, "/api/notes/:noteId/clone-after/:afterBranchId", cloningApiRoute.cloneNoteAfter);
+
+    asyncApiRoute(GET, "/api/special-notes/inbox/:date", specialNotesRoute.getInboxNote);
+    asyncApiRoute(GET, "/api/special-notes/days/:date", specialNotesRoute.getDayNote);
+    asyncApiRoute(GET, "/api/special-notes/week-first-day/:date", specialNotesRoute.getWeekFirstDayNote);
+    asyncApiRoute(GET, "/api/special-notes/weeks/:week", specialNotesRoute.getWeekNote);
+    asyncApiRoute(GET, "/api/special-notes/months/:month", specialNotesRoute.getMonthNote);
+    asyncApiRoute(GET, "/api/special-notes/quarters/:quarter", specialNotesRoute.getQuarterNote);
+    apiRoute(GET, "/api/special-notes/years/:year", specialNotesRoute.getYearNote);
+    apiRoute(GET, "/api/special-notes/notes-for-month/:month", specialNotesRoute.getDayNotesForMonth);
+    apiRoute(PST, "/api/special-notes/sql-console", specialNotesRoute.createSqlConsole);
+    asyncApiRoute(PST, "/api/special-notes/save-sql-console", specialNotesRoute.saveSqlConsole);
+    apiRoute(PST, "/api/special-notes/search-note", specialNotesRoute.createSearchNote);
+    apiRoute(PST, "/api/special-notes/save-search-note", specialNotesRoute.saveSearchNote);
+    apiRoute(PST, "/api/special-notes/launchers/:noteId/reset", specialNotesRoute.resetLauncher);
+    apiRoute(PST, "/api/special-notes/launchers/:parentNoteId/:launcherType", specialNotesRoute.createLauncher);
+    apiRoute(PUT, "/api/special-notes/api-script-launcher", specialNotesRoute.createOrUpdateScriptLauncherFromApi);
+
+    apiRoute(PST, "/api/note-map/:noteId/tree", noteMapRoute.getTreeMap);
+    apiRoute(PST, "/api/note-map/:noteId/link", noteMapRoute.getLinkMap);
+    apiRoute(GET, "/api/note-map/:noteId/backlinks", noteMapRoute.getBacklinks);
     apiRoute(GET, "/api/note-map/:noteId/backlink-count", noteMapRoute.getBacklinkCount);
 
     apiRoute(PST, "/api/recent-notes", recentNotesRoute.addRecentNote);
@@ -71,8 +177,31 @@ export function buildSharedApiRoutes(apiRoute: any) {
     apiRoute(GET, "/api/keyboard-actions", keysApiRoute.getKeyboardActions);
     apiRoute(GET, "/api/keyboard-shortcuts-for-notes", keysApiRoute.getShortcutsForNotes);
 
+    apiRoute(GET, "/api/stats/note-size/:noteId", statsRoute.getNoteSize);
+    apiRoute(GET, "/api/stats/subtree-size/:noteId", statsRoute.getSubtreeSize);
+
+    apiRoute(GET, "/api/sql/schema", sqlRoute.getSchema);
+    apiRoute(PST, "/api/sql/execute/:noteId", sqlRoute.execute);
+
+    apiRoute(PST, "/api/bulk-action/execute", bulkActionRoute.execute);
+    apiRoute(PST, "/api/bulk-action/affected-notes", bulkActionRoute.getAffectedNoteCount);
+
     apiRoute(GET, "/api/app-info", appInfoRoute.getAppInfo);
     apiRoute(GET, "/api/other/icon-usage", otherRoute.getIconUsage);
+    asyncApiRoute(GET, "/api/similar-notes/:noteId", similarNotesRoute.getSimilarNotes);
+    apiRoute(PST, "/api/relation-map", relationMapApiRoute.getRelationMap);
+    apiRoute(GET, "/api/recent-changes/:ancestorNoteId", recentChangesApiRoute.getRecentChanges);
+
+    //#region Files
+    route(GET, "/api/notes/:noteId/open", [checkApiAuthOrElectron], filesRoute.openFile);
+    route(GET, "/api/notes/:noteId/download", [checkApiAuthOrElectron], filesRoute.downloadFile);
+    // this "hacky" path is used for easier referencing of CSS resources
+    route(GET, "/api/notes/download/:noteId", [checkApiAuthOrElectron], filesRoute.downloadFile);
+    route(GET, "/api/attachments/:attachmentId/open", [checkApiAuthOrElectron], filesRoute.openAttachment);
+    route(GET, "/api/attachments/:attachmentId/download", [checkApiAuthOrElectron], filesRoute.downloadAttachment);
+    // this "hacky" path is used for easier referencing of CSS resources
+    route(GET, "/api/attachments/download/:attachmentId", [checkApiAuthOrElectron], filesRoute.downloadAttachment);
+    //#endregion
 }
 
 /** Handling common patterns. If entity is not caught, serialization to JSON will fail */

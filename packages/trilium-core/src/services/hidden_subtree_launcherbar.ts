@@ -40,18 +40,24 @@ export default function buildLaunchBarConfig() {
             type: "launcher",
             command: "showRecentChanges",
             icon: "bx bx-history"
-        }
+        },
+        searchNotes: {
+            title: t("hidden-subtree.search-notes-title"),
+            type: "launcher",
+            command: "searchNotes",
+            icon: "bx bx-search",
+        },
+        bookmarks: {
+            title: t("hidden-subtree.bookmarks-title"),
+            type: "launcher",
+            builtinWidget: "bookmarks",
+            icon: "bx bx-bookmark"
+        },
     };
 
     const desktopAvailableLaunchers: HiddenSubtreeItem[] = [
-        {
-            id: "_lbBackInHistory",
-            ...sharedLaunchers.backInHistory
-        },
-        {
-            id: "_lbForwardInHistory",
-            ...sharedLaunchers.forwardInHistory
-        },
+        { id: "_lbBackInHistory", ...sharedLaunchers.backInHistory },
+        { id: "_lbForwardInHistory", ...sharedLaunchers.forwardInHistory },
         {
             id: "_commandPalette",
             title: t("hidden-subtree.command-palette"),
@@ -82,11 +88,7 @@ export default function buildLaunchBarConfig() {
         },
         {
             id: "_lbSearch",
-            title: t("hidden-subtree.search-notes-title"),
-            type: "launcher",
-            command: "searchNotes",
-            icon: "bx bx-search",
-            attributes: [{ type: "label", name: "desktopOnly" }]
+            ...sharedLaunchers.searchNotes
         },
         {
             id: "_lbJumpTo",
@@ -106,11 +108,7 @@ export default function buildLaunchBarConfig() {
             id: "_lbLlmChat",
             title: t("hidden-subtree.llm-chat-title"),
             type: "launcher",
-            builtinWidget: "aiChatLauncher",
-            icon: "bx bx-bot",
-            attributes: [
-                { type: "label", name: "desktopOnly" }
-            ]
+            enforceDeleted: true
         },
         {
             id: "_lbCalendar",
@@ -128,13 +126,7 @@ export default function buildLaunchBarConfig() {
             baseSize: "50",
             growthFactor: "0"
         },
-        {
-            id: "_lbBookmarks",
-            title: t("hidden-subtree.bookmarks-title"),
-            type: "launcher",
-            builtinWidget: "bookmarks",
-            icon: "bx bx-bookmark"
-        },
+        { id: "_lbBookmarks", ...sharedLaunchers.bookmarks },
         {
             id: "_lbToday",
             ...sharedLaunchers.openToday
@@ -179,18 +171,15 @@ export default function buildLaunchBarConfig() {
 
     const mobileAvailableLaunchers: HiddenSubtreeItem[] = [
         { id: "_lbMobileNewNote", ...sharedLaunchers.newNote },
-        { id: "_lbMobileToday", ...sharedLaunchers.openToday }
+        { id: "_lbMobileSearchNotes", ...sharedLaunchers.searchNotes },
+        { id: "_lbMobileToday", ...sharedLaunchers.openToday },
+        { id: "_lbMobileRecentChanges", ...sharedLaunchers.recentChanges },
+        { id: "_lbMobileBookmarks", ...sharedLaunchers.bookmarks }
     ];
 
     const mobileVisibleLaunchers: HiddenSubtreeItem[] = [
-        {
-            id: "_lbMobileBackInHistory",
-            ...sharedLaunchers.backInHistory
-        },
-        {
-            id: "_lbMobileForwardInHistory",
-            ...sharedLaunchers.forwardInHistory
-        },
+        { id: "_lbMobileBackInHistory", ...sharedLaunchers.backInHistory },
+        { id: "_lbMobileForwardInHistory", ...sharedLaunchers.forwardInHistory },
         {
             id: "_lbMobileJumpTo",
             title: t("hidden-subtree.jump-to-note-title"),
@@ -203,8 +192,11 @@ export default function buildLaunchBarConfig() {
             ...sharedLaunchers.calendar
         },
         {
-            id: "_lbMobileRecentChanges",
-            ...sharedLaunchers.recentChanges
+            id: "_lbMobileTabSwitcher",
+            title: t("hidden-subtree.tab-switcher-title"),
+            type: "launcher",
+            builtinWidget: "mobileTabSwitcher",
+            icon: "bx bx-rectangle"
         }
     ];
 

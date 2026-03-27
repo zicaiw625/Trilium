@@ -19,15 +19,18 @@ export default defineConfig(() => ({
     exclude: [
       "spec/build-checks/**",
     ],
-    hookTimeout: 20000,
+    hookTimeout: 20_000,
+    testTimeout: 40_000,
     reporters: [
-      "verbose"
+      "verbose",
+      ["html", { outputFile: "./test-output/vitest/html/index.html" }]
     ],
     coverage: {
       reportsDirectory: './test-output/vitest/coverage',
       provider: 'v8' as const,
       reporter: [ "text", "html" ]
     },
-    pool: "vmForks"
+    pool: "forks",
+    maxWorkers: 6
   },
 }));

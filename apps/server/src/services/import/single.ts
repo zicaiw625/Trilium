@@ -1,10 +1,10 @@
 import type { NoteType } from "@triliumnext/commons";
-import { sanitize } from "@triliumnext/core";
+import { sanitize, utils } from "@triliumnext/core";
 
 import type BNote from "../../becca/entities/bnote.js";
 import imageService from "../../services/image.js";
 import noteService from "../../services/notes.js";
-import { getNoteTitle, processStringOrBuffer } from "../../services/utils.js";
+import { processStringOrBuffer } from "../../services/utils.js";
 import protectedSessionService from "../protected_session.js";
 import type TaskContext from "../task_context.js";
 import type { File } from "./common.js";
@@ -54,13 +54,14 @@ function importImage(file: File, parentNote: BNote, taskContext: TaskContext<"im
 function importFile(taskContext: TaskContext<"importNotes">, file: File, parentNote: BNote) {
     const originalName = file.originalname;
 
+    const mime = mimeService.getMime(originalName) || file.mimetype;
     const { note } = noteService.createNewNote({
         parentNoteId: parentNote.noteId,
-        title: originalName,
+        title: utils.getNoteTitle(originalName, mime === "application/pdf", { mime }),
         content: file.buffer,
         isProtected: parentNote.isProtected && protectedSessionService.isProtectedSessionAvailable(),
         type: "file",
-        mime: mimeService.getMime(originalName) || file.mimetype
+        mime
     });
 
     note.addLabel("originalFileName", originalName);
@@ -71,7 +72,7 @@ function importFile(taskContext: TaskContext<"importNotes">, file: File, parentN
 }
 
 function importCodeNote(taskContext: TaskContext<"importNotes">, file: File, parentNote: BNote) {
-    const title = getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
+    const title = utils.getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
     const content = processStringOrBuffer(file.buffer);
     const detectedMime = mimeService.getMime(file.originalname) || file.mimetype;
     const mime = mimeService.normalizeMimeType(detectedMime);
@@ -96,7 +97,7 @@ function importCodeNote(taskContext: TaskContext<"importNotes">, file: File, par
 }
 
 function importCustomType(taskContext: TaskContext<"importNotes">, file: File, parentNote: BNote, type: NoteType, mime: string) {
-    const title = getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
+    const title = utils.getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
     const content = processStringOrBuffer(file.buffer);
 
     const { note } = noteService.createNewNote({
@@ -114,7 +115,7 @@ function importCustomType(taskContext: TaskContext<"importNotes">, file: File, p
 }
 
 function importPlainText(taskContext: TaskContext<"importNotes">, file: File, parentNote: BNote) {
-    const title = getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
+    const title = utils.getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
     const plainTextContent = processStringOrBuffer(file.buffer);
     const htmlContent = convertTextToHtml(plainTextContent);
 
@@ -149,7 +150,7 @@ function convertTextToHtml(text: string) {
 }
 
 function importMarkdown(taskContext: TaskContext<"importNotes">, file: File, parentNote: BNote) {
-    const title = getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
+    const title = utils.getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
 
     const markdownContent = processStringOrBuffer(file.buffer);
     let htmlContent = markdownService.renderToHtml(markdownContent, title);
@@ -178,7 +179,7 @@ function importHtml(taskContext: TaskContext<"importNotes">, file: File, parentN
     // Try to get title from HTML first, fall back to filename
     // We do this before sanitization since that turns all <h1>s into <h2>
     const htmlTitle = importUtils.extractHtmlTitle(content);
-    const title = htmlTitle || getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
+    const title = htmlTitle || utils.getNoteTitle(file.originalname, !!taskContext.data?.replaceUnderscoresWithSpaces);
 
     content = importUtils.handleH1(content, title);
 

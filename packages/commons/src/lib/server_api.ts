@@ -1,5 +1,5 @@
 import type { Locale } from "./i18n.js";
-import { AttachmentRow, AttributeRow, BranchRow, NoteRow, NoteType } from "./rows.js";
+import { AttachmentRow, AttributeRow, BranchRow, NoteRow, NoteType, OptionRow } from "./rows.js";
 
 type Response = {
     success: true,
@@ -300,7 +300,7 @@ export interface IconRegistry {
     }[];
 }
 
-export type LabelType = "text" | "number" | "boolean" | "date" | "datetime" | "time" | "url" | "color";
+export type LabelType = "text" | "textarea" | "number" | "boolean" | "date" | "datetime" | "time" | "url" | "color";
 export type Multiplicity = "single" | "multi";
 
 export interface DefinitionObject {
@@ -312,32 +312,60 @@ export interface DefinitionObject {
     inverseRelation?: string;
 }
 
-export interface BootstrapDefinition {
-    device: "mobile" | "desktop" | "print" | false;
-    csrfToken: string;
+/**
+ * Bootstrap items that the client needs to start up. These are sent by the server in the HTML and made available as `window.glob`.
+ */
+export type BootstrapDefinition = {
+    dbInitialized: boolean;
+    baseApiUrl: string;
+    assetPath: string;
     themeCssUrl: string | false;
     themeUseNextAsBase?: "next" | "next-light" | "next-dark";
+    iconPackCss: string;
+    iconRegistry: IconRegistry;
+    device: "mobile" | "desktop" | "print" | false;
+    csrfToken?: string;
     headingStyle: "plain" | "underline" | "markdown";
     layoutOrientation: "vertical" | "horizontal";
     platform?: typeof process.platform | "web";
     isElectron: boolean;
-    isStandalone?: boolean;
+    isStandalone: boolean;
     hasNativeTitleBar: boolean;
     hasBackgroundEffects: boolean;
-    maxEntityChangeIdAtLoad: number;
-    maxEntityChangeSyncIdAtLoad: number;
+    maxEntityChangeIdAtLoad?: number;
+    maxEntityChangeSyncIdAtLoad?: number;
     instanceName: string | null;
     appCssNoteIds: string[];
     isDev: boolean;
     isMainWindow: boolean;
     isProtectedSessionAvailable: boolean;
     triliumVersion: string;
-    assetPath: string;
     appPath: string;
-    baseApiUrl: string;
     currentLocale: Locale;
     isRtl: boolean;
-    iconPackCss: string;
-    iconRegistry: IconRegistry;
     TRILIUM_SAFE_MODE: boolean;
+    componentId?: string;
+};
+
+/**
+ * Response for /api/setup/status.
+ */
+export interface SetupStatusResponse {
+    syncVersion: number;
+    schemaExists: boolean;
+}
+
+/**
+ * Response for /api/setup/sync-seed.
+ */
+export interface SetupSyncSeedResponse {
+    syncVersion: number;
+    options: OptionRow[];
+}
+
+export type SetupSyncFromServerResponse = {
+    result: "success";
+} | {
+    result: "failure";
+    error: string;
 }

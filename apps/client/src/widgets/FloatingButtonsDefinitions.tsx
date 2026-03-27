@@ -1,3 +1,5 @@
+import "./Backlinks.css";
+
 import { BacklinkCountResponse, BacklinksResponse, SaveSqlConsoleResponse } from "@triliumnext/commons";
 import { VNode } from "preact";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
@@ -7,7 +9,6 @@ import Component from "../components/component";
 import NoteContext from "../components/note_context";
 import FNote from "../entities/fnote";
 import attributes from "../services/attributes";
-import { isExperimentalFeatureEnabled } from "../services/experimental_features";
 import froca from "../services/froca";
 import { t } from "../services/i18n";
 import { copyImageReferenceToClipboard } from "../services/image";
@@ -55,18 +56,9 @@ export const DESKTOP_FLOATING_BUTTONS: FloatingButtonsList = [
     OpenTriliumApiDocsButton,
     SaveToNoteButton,
     RelationMapButtons,
-    GeoMapButtons,
     CopyImageReferenceButton,
     ExportImageButtons,
     InAppHelpButton,
-    Backlinks
-];
-
-export const MOBILE_FLOATING_BUTTONS: FloatingButtonsList = [
-    RefreshBackendLogButton,
-    EditButton,
-    RelationMapButtons,
-    ExportImageButtons,
     Backlinks
 ];
 
@@ -99,9 +91,10 @@ function SwitchSplitOrientationButton({ note, isReadOnly, isDefaultViewMode }: F
     />;
 }
 
-function ToggleReadOnlyButton({ note, viewType, isDefaultViewMode }: FloatingButtonContext) {
+function ToggleReadOnlyButton({ note, isDefaultViewMode }: FloatingButtonContext) {
     const [ isReadOnly, setReadOnly ] = useNoteLabelBoolean(note, "readOnly");
-    const isEnabled = ([ "mermaid", "mindMap", "canvas" ].includes(note.type) || viewType === "geoMap")
+    const isSavedSqlite = note.isTriliumSqlite() && !note.isHiddenCompletely();
+    const isEnabled = ([ "mermaid", "mindMap", "canvas" ].includes(note.type) || isSavedSqlite)
             && note.isContentAvailable() && isDefaultViewMode;
 
     return isEnabled && <FloatingButton
@@ -243,17 +236,6 @@ function RelationMapButtons({ note, isDefaultViewMode, triggerEvent }: FloatingB
     );
 }
 
-function GeoMapButtons({ triggerEvent, viewType, isReadOnly }: FloatingButtonContext) {
-    const isEnabled = viewType === "geoMap" && !isReadOnly;
-    return isEnabled && (
-        <FloatingButton
-            icon="bx bx-plus-circle"
-            text={t("geo-map.create-child-note-title")}
-            onClick={() => triggerEvent("geoMapCreateChildNote")}
-        />
-    );
-}
-
 function CopyImageReferenceButton({ note, isDefaultViewMode }: FloatingButtonContext) {
     const hiddenImageCopyRef = useRef<HTMLDivElement>(null);
     const isEnabled = (
@@ -305,7 +287,7 @@ function ExportImageButtons({ note, triggerEvent, isDefaultViewMode }: FloatingB
 
 function InAppHelpButton({ note }: FloatingButtonContext) {
     const helpUrl = getHelpUrlForNote(note);
-    const isEnabled = !!helpUrl;
+    const isEnabled = note.type !== "book" && !!helpUrl;
 
     return isEnabled && (
         <FloatingButton

@@ -28,8 +28,8 @@ script)](./README-ZH_TW.md) | [English](../README.md) | [French](./README-fr.md)
 [Spanish](./README-es.md)
 <!-- translate:on -->
 
-Trilium Notes is a free and open-source, cross-platform hierarchical note taking
-application with focus on building large personal knowledge bases.
+Trilium Notes er et gratis og åpen kildekode-basert, plattformuavhengig
+hierarkisk notatprogram med fokus på å bygge store personlige kunnskapsbaser.
 
 <img src="./app.png" alt="Trilium Screenshot" width="1000">
 
@@ -62,8 +62,8 @@ Vår dokumentasjon er tilgjengelig i flere format:
   TriliumNext](https://docs.triliumnotes.org/user-guide/setup/upgrading)
 - [Grunnleggende konsepter og
   funksjoner](https://docs.triliumnotes.org/user-guide/concepts/notes)
-- [Patterns of Personal Knowledge
-  Base](https://docs.triliumnotes.org/user-guide/misc/patterns-of-personal-knowledge)
+- [Modeller for personlig
+  kunnskapsbase](https://docs.triliumnotes.org/user-guide/misc/patterns-of-personal-knowledge)
 
 ## 🎁 Funksjoner
 
@@ -76,23 +76,23 @@ Vår dokumentasjon er tilgjengelig i flere format:
 * Support for editing [notes with source
   code](https://docs.triliumnotes.org/user-guide/note-types/code), including
   syntax highlighting
-* Fast and easy [navigation between
-  notes](https://docs.triliumnotes.org/user-guide/concepts/navigation/note-navigation),
-  full text search and [note
-  hoisting](https://docs.triliumnotes.org/user-guide/concepts/navigation/note-hoisting)
+* Rask og enkel [navigering mellom
+  notater](https://docs.triliumnotes.org/user-guide/concepts/navigation/note-navigation),
+  fulltekstsøk og
+  [notat-fokusering](https://docs.triliumnotes.org/user-guide/concepts/navigation/note-hoisting)
 * Sømløs
   [notathistorikk](https://docs.triliumnotes.org/user-guide/concepts/notes/note-revisions)
-* Note
-  [attributes](https://docs.triliumnotes.org/user-guide/advanced-usage/attributes)
-  can be used for note organization, querying and advanced
-  [scripting](https://docs.triliumnotes.org/user-guide/scripts)
-* UI available in English, German, Spanish, French, Romanian, and Chinese
-  (simplified and traditional)
-* Direct [OpenID and TOTP
-  integration](https://docs.triliumnotes.org/user-guide/setup/server/mfa) for
-  more secure login
-* [Synchronization](https://docs.triliumnotes.org/user-guide/setup/synchronization)
-  with self-hosted sync server
+* Notaters
+  [attributter](https://docs.triliumnotes.org/user-guide/advanced-usage/attributes)
+  kan brukes til å organisere notater, utføre spørringer og avansert
+  [skripting](https://docs.triliumnotes.org/user-guide/scripts)
+* Brukergrensesnitt tilgjengelig på Engelsk, Tysk, Spansk, Fransk, Rumensk, og
+  Kinesisk (forenklet og tradisjonell)
+* Direkte [OpenID og
+  TOTP-integrasjon](https://docs.triliumnotes.org/user-guide/setup/server/mfa)
+  for sikrere pålogging
+* [Synkronisering](https://docs.triliumnotes.org/user-guide/setup/synchronization)
+  med selv-hostet sync server
   * there are [3rd party services for hosting synchronisation
     server](https://docs.triliumnotes.org/user-guide/setup/server/cloud-hosting)
 * [Sharing](https://docs.triliumnotes.org/user-guide/advanced-usage/sharing)
@@ -109,8 +109,8 @@ Vår dokumentasjon er tilgjengelig i flere format:
 * Mind maps, based on [Mind Elixir](https://docs.mind-elixir.com/)
 * [Geo maps](https://docs.triliumnotes.org/user-guide/collections/geomap) with
   location pins and GPX tracks
-* [Scripting](https://docs.triliumnotes.org/user-guide/scripts) - see [Advanced
-  showcases](https://docs.triliumnotes.org/user-guide/advanced-usage/advanced-showcases)
+* [Skripting](https://docs.triliumnotes.org/user-guide/scripts) - se [Avanserte
+  bruksområder](https://docs.triliumnotes.org/user-guide/advanced-usage/advanced-showcases)
 * [REST API](https://docs.triliumnotes.org/user-guide/advanced-usage/etapi) for
   automatisering
 * Scales well in both usability and performance upwards of 100 000 notes
@@ -156,13 +156,13 @@ compatible with the latest zadam/trilium version of
 versions of TriliumNext/Trilium have their sync versions incremented which
 prevents direct migration.
 
-## 💬 Discuss with us
+## 💬Diskuter med oss
 
 Feel free to join our official conversations. We would love to hear what
 features, suggestions, or issues you may have!
 
-- [Matrix](https://matrix.to/#/#triliumnext:matrix.org) (For synchronous
-  discussions.)
+- [Matrix](https://matrix.to/#/#triliumnext:matrix.org) (For synkrone
+  diskusjoner.)
   - The `General` Matrix room is also bridged to
     [XMPP](xmpp:discuss@trilium.thisgreat.party?join)
 - [Github Discussions](https://github.com/TriliumNext/Trilium/discussions) (For
@@ -322,7 +322,7 @@ Consider supporting the main developer
 
 - [GitHub Sponsors](https://github.com/sponsors/eliandoran)
 - [PayPal](https://paypal.me/eliandoran)
-- [Buy Me a Coffee](https://buymeacoffee.com/eliandoran)
+- [Spander en kaffe](https://buymeacoffee.com/eliandoran)
 
 ## 🔑 Lisens
 

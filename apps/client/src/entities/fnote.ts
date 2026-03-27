@@ -1,4 +1,4 @@
-import { MIME_TYPES_DICT } from "@triliumnext/commons";
+import { getNoteIcon } from "@triliumnext/commons";
 
 import cssClassManager from "../services/css_class_manager.js";
 import type { Froca } from "../services/froca-interface.js";
@@ -13,31 +13,12 @@ import type { AttributeType, default as FAttribute } from "./fattribute.js";
 const LABEL = "label";
 const RELATION = "relation";
 
-export const NOTE_TYPE_ICONS = {
-    file: "bx bx-file",
-    image: "bx bx-image",
-    code: "bx bx-code",
-    render: "bx bx-extension",
-    search: "bx bx-file-find",
-    relationMap: "bx bxs-network-chart",
-    book: "bx bx-book",
-    noteMap: "bx bxs-network-chart",
-    mermaid: "bx bx-selection",
-    canvas: "bx bx-pen",
-    webView: "bx bx-globe-alt",
-    launcher: "bx bx-link",
-    doc: "bx bxs-file-doc",
-    contentWidget: "bx bxs-widget",
-    mindMap: "bx bx-sitemap",
-    aiChat: "bx bx-bot"
-};
-
 /**
  * There are many different Note types, some of which are entirely opaque to the
  * end user. Those types should be used only for checking against, they are
  * not for direct use.
  */
-export type NoteType = "file" | "image" | "search" | "noteMap" | "launcher" | "doc" | "contentWidget" | "text" | "relationMap" | "render" | "canvas" | "mermaid" | "book" | "webView" | "code" | "mindMap" | "aiChat";
+export type NoteType = "file" | "image" | "search" | "noteMap" | "launcher" | "doc" | "contentWidget" | "text" | "relationMap" | "render" | "canvas" | "mermaid" | "book" | "webView" | "code" | "mindMap" | "spreadsheet";
 
 export interface NotePathRecord {
     isArchived: boolean;
@@ -582,32 +563,18 @@ export default class FNote {
     }
 
     getIcon() {
-        return `tn-icon ${this.#getIconInternal()}`;
-    }
-
-    #getIconInternal() {
         const iconClassLabels = this.getLabels("iconClass");
         const workspaceIconClass = this.getWorkspaceIconClass();
 
-        if (iconClassLabels && iconClassLabels.length > 0) {
-            return iconClassLabels[0].value;
-        } else if (workspaceIconClass) {
-            return workspaceIconClass;
-        } else if (this.noteId === "root") {
-            return "bx bx-home-alt-2";
-        }
-        if (this.noteId === "_share") {
-            return "bx bx-share-alt";
-        } else if (this.type === "text") {
-            if (this.isFolder()) {
-                return "bx bx-folder";
-            }
-            return "bx bx-note";
-        } else if (this.type === "code") {
-            const correspondingMimeType = MIME_TYPES_DICT.find(m => m.mime === this.mime);
-            return correspondingMimeType?.icon ?? NOTE_TYPE_ICONS.code;
-        }
-        return NOTE_TYPE_ICONS[this.type];
+        const icon = getNoteIcon({
+            noteId: this.noteId,
+            type: this.type,
+            mime: this.mime,
+            iconClass: iconClassLabels.length > 0 ? iconClassLabels[0].value : undefined,
+            workspaceIconClass,
+            isFolder: this.isFolder.bind(this)
+        });
+        return `tn-icon ${icon}`;
     }
 
     getColorClass() {
@@ -731,6 +698,15 @@ export default class FNote {
      */
     hasLabel(name: string) {
         return this.hasAttribute(LABEL, name);
+    }
+
+    /**
+     * Returns `true` if the note has a label with the given name (same as {@link hasOwnedLabel}), or it has a label with the `disabled:` prefix (for example due to a safe import).
+     * @param name the name of the label to look for.
+     * @returns `true` if the label exists, or its version with the `disabled:` prefix.
+     */
+    hasLabelOrDisabled(name: string) {
+        return this.hasLabel(name) || this.hasLabel(`disabled:${name}`);
     }
 
     /**

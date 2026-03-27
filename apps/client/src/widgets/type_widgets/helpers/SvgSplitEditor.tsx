@@ -1,13 +1,14 @@
-import { useCallback, useEffect, useRef, useState } from "preact/hooks";
-import { t } from "../../../services/i18n";
-import SplitEditor, { PreviewButton, SplitEditorProps } from "./SplitEditor";
-import { RawHtmlBlock } from "../../react/RawHtml";
-import server from "../../../services/server";
-import svgPanZoom from "svg-pan-zoom";
 import { RefObject } from "preact";
-import { useElementSize, useTriliumEvent } from "../../react/hooks";
-import utils from "../../../services/utils";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
+import svgPanZoom from "svg-pan-zoom";
+
+import { t } from "../../../services/i18n";
+import server from "../../../services/server";
 import toast from "../../../services/toast";
+import utils from "../../../services/utils";
+import { useElementSize, useTriliumEvent } from "../../react/hooks";
+import { RawHtmlBlock } from "../../react/RawHtml";
+import SplitEditor, { PreviewButton, SplitEditorProps } from "./SplitEditor";
 
 interface SvgSplitEditorProps extends Omit<SplitEditorProps, "previewContent"> {
     /**
@@ -116,6 +117,7 @@ export default function SvgSplitEditor({ ntxId, note, attachmentName, renderSvg,
             error={error}
             onContentChanged={onContentChanged}
             dataSaved={onSave}
+            placeholder={t("mermaid.placeholder")}
             previewContent={(
                 <RawHtmlBlock
                     className="render-container"
@@ -144,12 +146,13 @@ export default function SvgSplitEditor({ ntxId, note, attachmentName, renderSvg,
             }
             {...props}
         />
-    )
+    );
 }
 
 function useResizer(containerRef: RefObject<HTMLDivElement>, noteId: string, svg: string | undefined) {
     const lastPanZoom = useRef<{ pan: SvgPanZoom.Point, zoom: number }>();
     const lastNoteId = useRef<string>();
+    const wasEmpty = useRef<boolean>(false);
     const zoomRef = useRef<SvgPanZoom.Instance>();
     const width = useElementSize(containerRef);
 
@@ -157,9 +160,14 @@ function useResizer(containerRef: RefObject<HTMLDivElement>, noteId: string, svg
     useEffect(() => {
         if (zoomRef.current || width?.width === 0) return;
 
-        const shouldPreservePanZoom = (lastNoteId.current === noteId);
+        const shouldPreservePanZoom = (lastNoteId.current === noteId) && !wasEmpty.current;
         const svgEl = containerRef.current?.querySelector("svg");
-        if (!svgEl) return;
+        if (!svgEl) {
+            if (svg?.trim().length === 0) {
+                wasEmpty.current = true;
+            }
+            return;
+        };
 
         const zoomInstance = svgPanZoom(svgEl, {
             zoomEnabled: true,
@@ -181,11 +189,11 @@ function useResizer(containerRef: RefObject<HTMLDivElement>, noteId: string, svg
             lastPanZoom.current = {
                 pan: zoomInstance.getPan(),
                 zoom: zoomInstance.getZoom()
-            }
+            };
             zoomRef.current = undefined;
             zoomInstance.destroy();
         };
-    }, [ svg, width ]);
+    }, [ containerRef, noteId, svg, width ]);
 
     // React to container changes.
     useEffect(() => {

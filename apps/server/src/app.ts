@@ -3,6 +3,7 @@ import("@triliumnext/core");
 import { erase } from "@triliumnext/core";
 import compression from "compression";
 import cookieParser from "cookie-parser";
+import ejs from "ejs";
 import express from "express";
 import { auth } from "express-openid-connect";
 import helmet from "helmet";
@@ -18,14 +19,10 @@ import config from "./services/config.js";
 import log from "./services/log.js";
 import openID from "./services/open_id.js";
 import { RESOURCE_DIR } from "./services/resource_dir.js";
-import sql_init from "./services/sql_init.js";
 import utils, { getResourceDir, isDev } from "./services/utils.js";
 
 export default async function buildApp() {
     const app = express();
-
-    // Initialize DB
-    sql_init.initializeDb();
 
     const publicDir = isDev ? path.join(getResourceDir(), "../dist/public") : path.join(getResourceDir(), "public");
     const publicAssetsDir = path.join(publicDir, "assets");
@@ -33,19 +30,26 @@ export default async function buildApp() {
 
     // view engine setup
     app.set("views", path.join(assetsDir, "views"));
-    app.engine("ejs", (await import("ejs")).renderFile);
+    app.engine("ejs", (filePath, options, callback) => ejs.renderFile(filePath, options, callback));
     app.set("view engine", "ejs");
 
     app.use((req, res, next) => {
-        // set CORS header
+        // set CORS headers
         if (config["Network"]["corsAllowOrigin"]) {
             res.header("Access-Control-Allow-Origin", config["Network"]["corsAllowOrigin"]);
+            res.header("Access-Control-Allow-Credentials", "true");
         }
         if (config["Network"]["corsAllowMethods"]) {
             res.header("Access-Control-Allow-Methods", config["Network"]["corsAllowMethods"]);
         }
         if (config["Network"]["corsAllowHeaders"]) {
             res.header("Access-Control-Allow-Headers", config["Network"]["corsAllowHeaders"]);
+        }
+
+        // Handle preflight OPTIONS requests
+        if (req.method === "OPTIONS" && config["Network"]["corsAllowOrigin"]) {
+            res.sendStatus(204);
+            return;
         }
 
         res.locals.t = t;
@@ -84,9 +88,10 @@ export default async function buildApp() {
     app.use(`/robots.txt`, express.static(path.join(publicAssetsDir, "robots.txt")));
     app.use(`/icon.png`, express.static(path.join(publicAssetsDir, "icon.png")));
 
-    const sessionParser = (await import("./routes/session_parser.js")).default;
+    const { default: sessionParser, startSessionCleanup } = await import("./routes/session_parser.js");
     app.use(sessionParser);
-    app.use(favicon(path.join(assetsDir, "icon.ico")));
+    startSessionCleanup();
+    app.use(favicon(path.join(assetsDir, isDev ? "icon-dev.ico" : "icon.ico")));
 
     if (openID.isOpenIDEnabled())
         app.use(auth(openID.generateOAuthConfig()));
@@ -96,16 +101,15 @@ export default async function buildApp() {
     custom.register(app);
     error_handlers.register(app);
 
-    // triggers sync timer
-    await import("./services/sync.js");
+    const { sync, consistency_checks } = await import("@triliumnext/core");
+    sync.startSyncTimer();
 
-    // triggers backup timer
     await import("./services/backup.js");
 
-    // trigger consistency checks timer
-    await import("./services/consistency_checks.js");
+    consistency_checks.startConsistencyChecks();
 
-    await import("./services/scheduler.js");
+    const { startScheduler } = await import("./services/scheduler.js");
+    startScheduler();
 
     erase.startScheduledCleanup();
 

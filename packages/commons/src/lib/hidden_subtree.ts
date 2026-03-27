@@ -6,7 +6,6 @@ enum Command {
     createNoteIntoInbox,
     showRecentChanges,
     showOptions,
-    createAiChat,
     commandPalette,
     toggleZenMode
 }
@@ -43,9 +42,9 @@ export interface HiddenSubtreeItem {
         | "protectedSession"
         | "calendar"
         | "quickSearch"
-        | "aiChatLauncher"
         | "commandPalette"
-        | "toggleZenMode";
+        | "toggleZenMode"
+        | "mobileTabSwitcher";
     command?: keyof typeof Command;
     /**
      * If set to true, then branches will be enforced to be in the correct place.
@@ -58,6 +57,10 @@ export interface HiddenSubtreeItem {
      * definitions will be removed.
      */
     enforceAttributes?: boolean;
+    /**
+     * If set to true, if a note with the same ID is found, it will be deleted. This is useful to deactivate features in future versions, for example the launch bar.
+     */
+    enforceDeleted?: boolean;
     /**
      * Optionally, a content to be set in the hidden note. If undefined, an empty string will be set instead.
      *

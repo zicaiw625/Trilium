@@ -14,13 +14,13 @@ async function addLabel(noteId: string, name: string, value: string = "", isInhe
     });
 }
 
-export async function setLabel(noteId: string, name: string, value: string = "", isInheritable = false) {
+export async function setLabel(noteId: string, name: string, value: string = "", isInheritable = false, componentId?: string) {
     await server.put(`notes/${noteId}/set-attribute`, {
         type: "label",
         name,
         value,
-        isInheritable
-    });
+        isInheritable,
+    }, componentId);
 }
 
 export async function setRelation(noteId: string, name: string, value: string = "", isInheritable = false) {
@@ -117,15 +117,15 @@ function removeOwnedRelationByName(note: FNote, relationName: string) {
  * @param name the name of the attribute to set.
  * @param value the value of the attribute to set.
  */
-export async function setAttribute(note: FNote, type: "label" | "relation", name: string, value: string | null | undefined) {
+export async function setAttribute(note: FNote, type: "label" | "relation", name: string, value: string | null | undefined, componentId?: string) {
     if (value !== null && value !== undefined) {
         // Create or update the attribute.
-        await server.put(`notes/${note.noteId}/set-attribute`, { type, name, value });
+        await server.put(`notes/${note.noteId}/set-attribute`, { type, name, value }, componentId);
     } else {
         // Remove the attribute if it exists on the server but we don't define a value for it.
         const attributeId = note.getAttribute(type, name)?.attributeId;
         if (attributeId) {
-            await server.remove(`notes/${note.noteId}/attributes/${attributeId}`);
+            await server.remove(`notes/${note.noteId}/attributes/${attributeId}`, componentId);
         }
     }
 }
@@ -168,6 +168,49 @@ function isAffecting(attrRow: AttributeRow, affectedNote: FNote | null | undefin
     return false;
 }
 
+/**
+ * Toggles whether a dangerous attribute is enabled or not. When an attribute is disabled, its name is prefixed with `disabled:`.
+ *
+ * Note that this work for non-dangerous attributes as well.
+ *
+ * If there are multiple attributes with the same name, all of them will be toggled at the same time.
+ *
+ * @param note the note whose attribute to change.
+ * @param type the type of dangerous attribute (label or relation).
+ * @param name the name of the dangerous attribute.
+ * @param willEnable whether to enable or disable the attribute.
+ * @returns a promise that will resolve when the request to the server completes.
+ */
+async function toggleDangerousAttribute(note: FNote, type: "label" | "relation", name: string, willEnable: boolean) {
+    const attrs = [
+        ...note.getOwnedAttributes(type, name),
+        ...note.getOwnedAttributes(type, `disabled:${name}`)
+    ];
+
+    for (const attr of attrs) {
+        const baseName = getNameWithoutDangerousPrefix(attr.name);
+        const newName = willEnable ? baseName : `disabled:${baseName}`;
+        if (newName === attr.name) continue;
+
+        // We are adding and removing afterwards to avoid a flicker (because for a moment there would be no active content attribute anymore) because the operations are done in sequence and not atomically.
+        if (attr.type === "label") {
+            await setLabel(note.noteId, newName, attr.value);
+        } else {
+            await setRelation(note.noteId, newName, attr.value);
+        }
+        await removeAttributeById(note.noteId, attr.attributeId);
+    }
+}
+
+/**
+ * Returns the name of an attribute without the `disabled:` prefix, or the same name if it's not disabled.
+ * @param name the name of an attribute.
+ * @returns the name without the `disabled:` prefix.
+ */
+function getNameWithoutDangerousPrefix(name: string) {
+    return name.startsWith("disabled:") ? name.substring(9) : name;
+}
+
 export default {
     addLabel,
     setLabel,
@@ -177,5 +220,7 @@ export default {
     removeAttributeById,
     removeOwnedLabelByName,
     removeOwnedRelationByName,
-    isAffecting
+    isAffecting,
+    toggleDangerousAttribute,
+    getNameWithoutDangerousPrefix
 };

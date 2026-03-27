@@ -16,10 +16,21 @@ async function initJQuery() {
     const $ = (await import("jquery")).default;
     window.$ = $;
     window.jQuery = $;
+
+    // Polyfill removed jQuery methods for autocomplete.js compatibility
+    ($ as any).isArray = Array.isArray;
+    ($ as any).isFunction = function(obj: any) { return typeof obj === 'function'; };
+    ($ as any).isPlainObject = function(obj: any) {
+        if (obj == null || typeof obj !== 'object') { return false; }
+        const proto = Object.getPrototypeOf(obj);
+        if (proto === null) { return true; }
+        const Ctor = Object.prototype.hasOwnProperty.call(proto, 'constructor') && proto.constructor;
+        return typeof Ctor === 'function' && Ctor === Object;
+    };
 }
 
 async function setupGlob() {
-    const response = await fetch(`/bootstrap${window.location.search}`);
+    const response = await fetch(`./bootstrap${window.location.search}`);
     const json = await response.json();
 
     window.global = globalThis; /* fixes https://github.com/webpack/webpack/issues/10035 */
@@ -66,22 +77,25 @@ async function loadBootstrapCss() {
 }
 
 function loadStylesheets() {
-    const { assetPath, themeCssUrl, themeUseNextAsBase } = window.glob;
+    const { device, assetPath, themeCssUrl, themeUseNextAsBase } = window.glob;
+
     const cssToLoad: string[] = [];
-    cssToLoad.push(`${assetPath}/stylesheets/ckeditor-theme.css`);
-    cssToLoad.push(`api/fonts`);
-    cssToLoad.push(`${assetPath}/stylesheets/theme-light.css`);
-    if (themeCssUrl) {
-        cssToLoad.push(themeCssUrl);
+    if (device !== "print") {
+        cssToLoad.push(`${assetPath}/stylesheets/ckeditor-theme.css`);
+        cssToLoad.push(`api/fonts`);
+        cssToLoad.push(`${assetPath}/stylesheets/theme-light.css`);
+        if (themeCssUrl) {
+            cssToLoad.push(themeCssUrl);
+        }
+        if (themeUseNextAsBase === "next") {
+            cssToLoad.push(`${assetPath}/stylesheets/theme-next.css`);
+        } else if (themeUseNextAsBase === "next-dark") {
+            cssToLoad.push(`${assetPath}/stylesheets/theme-next-dark.css`);
+        } else if (themeUseNextAsBase === "next-light") {
+            cssToLoad.push(`${assetPath}/stylesheets/theme-next-light.css`);
+        }
+        cssToLoad.push(`${assetPath}/stylesheets/style.css`);
     }
-    if (themeUseNextAsBase === "next") {
-        cssToLoad.push(`${assetPath}/stylesheets/theme-next.css`);
-    } else if (themeUseNextAsBase === "next-dark") {
-        cssToLoad.push(`${assetPath}/stylesheets/theme-next-dark.css`);
-    } else if (themeUseNextAsBase === "next-light") {
-        cssToLoad.push(`${assetPath}/stylesheets/theme-next-light.css`);
-    }
-    cssToLoad.push(`${assetPath}/stylesheets/style.css`);
 
     for (const href of cssToLoad) {
         const linkEl = document.createElement("link");
@@ -98,6 +112,8 @@ function loadIcons() {
 }
 
 function setBodyAttributes() {
+    if (!glob.dbInitialized) return;
+
     const { device, headingStyle, layoutOrientation, platform, isElectron, hasNativeTitleBar, hasBackgroundEffects, currentLocale } = window.glob;
     const classesToSet = [
         device,
@@ -118,6 +134,11 @@ function setBodyAttributes() {
 }
 
 async function loadScripts() {
+    if (!glob.dbInitialized) {
+        await import("./setup.js");
+        return;
+    }
+
     switch (glob.device) {
         case "mobile":
             await import("./mobile.js");
@@ -128,6 +149,7 @@ async function loadScripts() {
         case "desktop":
         default:
             await import("./desktop.js");
+            break;
     }
 }
 

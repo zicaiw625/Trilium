@@ -1,5 +1,6 @@
 import "./NoteDetail.css";
 
+import clsx from "clsx";
 import { isValidElement, VNode } from "preact";
 import { useEffect, useRef, useState } from "preact/hooks";
 
@@ -12,8 +13,9 @@ import { t } from "../services/i18n";
 import protected_session_holder from "../services/protected_session_holder";
 import toast from "../services/toast.js";
 import { dynamicRequire, isElectron, isMobile } from "../services/utils";
+import NoteTreeWidget from "./note_tree";
 import { ExtendedNoteType, TYPE_MAPPINGS, TypeWidget } from "./note_types";
-import { useNoteContext, useTriliumEvent } from "./react/hooks";
+import { useLegacyWidget, useNoteContext, useTriliumEvent } from "./react/hooks";
 import { NoteListWithLinks } from "./react/NoteList";
 import { TypeWidgetProps } from "./type_widgets/type_widget";
 
@@ -36,6 +38,22 @@ export default function NoteDetail() {
     const [ noteTypesToRender, setNoteTypesToRender ] = useState<{ [ key in ExtendedNoteType ]?: (props: TypeWidgetProps) => VNode }>({});
     const [ activeNoteType, setActiveNoteType ] = useState<ExtendedNoteType>();
     const widgetRequestId = useRef(0);
+    const hasFixedTree = note && noteContext?.hoistedNoteId === "_lbMobileRoot" && isMobile() && note.noteId.startsWith("_lbMobile");
+
+    // Defer loading for tabs that haven't been active yet (e.g. on app refresh).
+    // Special contexts (ntxId starting with "_", e.g. popup editor) are always considered active.
+    const isSpecialContext = ntxId?.startsWith("_") ?? false;
+    const [ hasTabBeenActive, setHasTabBeenActive ] = useState(() => isSpecialContext || (noteContext?.isActive() ?? false));
+    useEffect(() => {
+        if (!hasTabBeenActive && noteContext?.isActive()) {
+            setHasTabBeenActive(true);
+        }
+    }, [ noteContext, hasTabBeenActive ]);
+    useTriliumEvent("activeNoteChanged", ({ ntxId: eventNtxId }) => {
+        if (eventNtxId === ntxId && !hasTabBeenActive) {
+            setHasTabBeenActive(true);
+        }
+    });
 
     const props: TypeWidgetProps = {
         note: note!,
@@ -46,7 +64,7 @@ export default function NoteDetail() {
     };
 
     useEffect(() => {
-        if (!type) return;
+        if (!type || !hasTabBeenActive) return;
         const requestId = ++widgetRequestId.current;
 
         if (!noteTypesToRender[type]) {
@@ -65,7 +83,7 @@ export default function NoteDetail() {
         } else {
             setActiveNoteType(type);
         }
-    }, [ note, viewScope, type, noteTypesToRender ]);
+    }, [ note, viewScope, type, noteTypesToRender, hasTabBeenActive ]);
 
     // Detect note type changes.
     useTriliumEvent("entitiesReloaded", async ({ loadResults }) => {
@@ -118,13 +136,6 @@ export default function NoteDetail() {
             parentComponent.triggerCommand("focusOnDetail", { ntxId });
         }
     });
-
-    // Fixed tree for launch bar config on mobile.
-    useEffect(() => {
-        if (!isMobile) return;
-        const hasFixedTree = noteContext?.hoistedNoteId === "_lbMobileRoot";
-        document.body.classList.toggle("force-fixed-tree", hasFixedTree);
-    }, [ note ]);
 
     // Handle toast notifications.
     useEffect(() => {
@@ -215,8 +226,13 @@ export default function NoteDetail() {
     return (
         <div
             ref={containerRef}
-            class={`component note-detail ${isFullHeight ? "full-height" : ""}`}
+            class={clsx("component note-detail", {
+                "full-height": isFullHeight,
+                "fixed-tree": hasFixedTree
+            })}
         >
+            {hasFixedTree && <FixedTree noteContext={noteContext} />}
+
             {Object.entries(noteTypesToRender).map(([ itemType, Element ]) => {
                 return <NoteDetailWrapper
                     Element={Element}
@@ -231,6 +247,11 @@ export default function NoteDetail() {
     );
 }
 
+function FixedTree({ noteContext }: { noteContext: NoteContext }) {
+    const [ treeEl ] = useLegacyWidget(() => new NoteTreeWidget(), { noteContext });
+    return <div class="fixed-note-tree-container">{treeEl}</div>;
+}
+
 /**
  * Wraps a single note type widget, in order to keep it in the DOM even after the user has switched away to another note type. This allows faster loading of the same note type again. The properties are cached, so that they are updated only
  * while the widget is visible, to avoid rendering in the background. When not visible, the DOM element is simply hidden.
@@ -241,9 +262,8 @@ function NoteDetailWrapper({ Element, type, isVisible, isFullHeight, props }: { 
     useEffect(() => {
         if (isVisible) {
             setCachedProps(props);
-        } else {
-            // Do nothing, keep the old props.
         }
+        // When not visible, keep the old props to avoid re-rendering in the background.
     }, [ props, isVisible ]);
 
     const typeMapping = TYPE_MAPPINGS[type];
@@ -254,7 +274,7 @@ function NoteDetailWrapper({ Element, type, isVisible, isFullHeight, props }: { 
                 height: isFullHeight ? "100%" : ""
             }}
         >
-            { <Element {...cachedProps} /> }
+            <Element {...cachedProps} />
         </div>
     );
 }
@@ -265,9 +285,13 @@ function useNoteInfo() {
     const [ note, setNote ] = useState<FNote | null | undefined>();
     const [ type, setType ] = useState<ExtendedNoteType>();
     const [ mime, setMime ] = useState<string>();
+    const refreshIdRef = useRef(0);
 
     function refresh() {
+        const refreshId = ++refreshIdRef.current;
+
         getExtendedWidgetType(actualNote, noteContext).then(type => {
+            if (refreshId !== refreshIdRef.current) return;
             setNote(actualNote);
             setType(type);
             setMime(actualNote?.mime);
@@ -318,6 +342,8 @@ export async function getExtendedWidgetType(note: FNote | null | undefined, note
         resultingType = "noteMap";
     } else if (type === "text" && (await noteContext?.isReadOnly())) {
         resultingType = "readOnlyText";
+    } else if (note.isTriliumSqlite()) {
+        resultingType = "sqlConsole";
     } else if ((type === "code" || type === "mermaid") && (await noteContext?.isReadOnly())) {
         resultingType = "readOnlyCode";
     } else if (type === "text") {
@@ -342,9 +368,16 @@ export function checkFullHeight(noteContext: NoteContext | undefined, type: Exte
 
     // https://github.com/zadam/trilium/issues/2522
     const isBackendNote = noteContext?.noteId === "_backendLog";
-    const isSqlNote = noteContext.note?.mime === "text/x-sqlite;schema=trilium";
     const isFullHeightNoteType = type && TYPE_MAPPINGS[type].isFullHeight;
-    return (!noteContext?.hasNoteList() && isFullHeightNoteType && !isSqlNote)
+
+    // Allow vertical centering when there are no results.
+    if (type === "book" &&
+        [ "grid", "list" ].includes(noteContext.note?.getLabelValue("viewType") ?? "grid") &&
+        !noteContext.note?.hasChildren()) {
+        return true;
+    }
+
+    return (!noteContext?.hasNoteList() && isFullHeightNoteType)
         || noteContext?.viewScope?.viewMode === "attachments"
         || isBackendNote;
 }
@@ -358,8 +391,34 @@ function showToast(type: "printing" | "exporting_pdf", progress: number = 0) {
     });
 }
 
-function handlePrintReport(printReport: PrintReport) {
-    if (printReport.type === "collection" && printReport.ignoredNoteIds.length > 0) {
+function handlePrintReport(printReport?: PrintReport) {
+    if (!printReport) return;
+
+    if (printReport.type === "error") {
+        toast.showPersistent({
+            id: "print-error",
+            icon: "bx bx-error-circle",
+            title: t("note_detail.print_report_error_title"),
+            message: printReport.message,
+            buttons: printReport.stack ? [
+                {
+                    text: t("note_detail.print_report_collection_details_button"),
+                    onClick(api) {
+                        api.dismissToast();
+                        dialog.info(<>
+                            <p>{printReport.message}</p>
+                            <details>
+                                <summary>{t("note_detail.print_report_stack_trace")}</summary>
+                                <pre style="font-size: 0.85em; overflow-x: auto;">{printReport.stack}</pre>
+                            </details>
+                        </>, {
+                            title: t("note_detail.print_report_error_title")
+                        });
+                    }
+                }
+            ] : undefined
+        });
+    } else if (printReport.type === "collection" && printReport.ignoredNoteIds.length > 0) {
         toast.showPersistent({
             id: "print-report",
             icon: "bx bx-collection",

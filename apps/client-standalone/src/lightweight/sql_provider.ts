@@ -1,7 +1,5 @@
+import { type BindableValue, default as sqlite3InitModule } from "@sqlite.org/sqlite-wasm";
 import type { DatabaseProvider, RunResult, Statement, Transaction } from "@triliumnext/core";
-import sqlite3InitModule from "@sqlite.org/sqlite-wasm";
-import type { BindableValue } from "@sqlite.org/sqlite-wasm";
-import demoDbSql from "./db.sql?raw";
 
 // Type definitions for SQLite WASM (the library doesn't export these directly)
 type Sqlite3Module = Awaited<ReturnType<typeof sqlite3InitModule>>;
@@ -20,7 +18,8 @@ class WasmStatement implements Statement {
     constructor(
         private stmt: Sqlite3PreparedStatement,
         private db: Sqlite3Database,
-        private sqlite3: Sqlite3Module
+        private sqlite3: Sqlite3Module,
+        private sql: string
     ) {}
 
     run(...params: unknown[]): RunResult {
@@ -39,7 +38,7 @@ class WasmStatement implements Statement {
             this.stmt.reset();
             return {
                 changes,
-                lastInsertRowid
+                lastInsertRowid: typeof lastInsertRowid === "bigint" ? Number(lastInsertRowid) : lastInsertRowid
             };
         } catch (e) {
             // Reset on error to allow reuse
@@ -137,6 +136,24 @@ class WasmStatement implements Statement {
         return this;
     }
 
+    /**
+     * Detect the prefix used for a parameter name in the SQL query.
+     * SQLite supports @name, :name, and $name parameter styles.
+     * Returns the prefix character, or ':' as default if not found.
+     */
+    private detectParamPrefix(paramName: string): string {
+        // Search for the parameter with each possible prefix
+        for (const prefix of [':', '@', '$']) {
+            // Use word boundary to avoid partial matches
+            const pattern = new RegExp(`\\${prefix}${paramName}(?![a-zA-Z0-9_])`);
+            if (pattern.test(this.sql)) {
+                return prefix;
+            }
+        }
+        // Default to ':' if not found (most common in Trilium)
+        return ':';
+    }
+
     private bindParams(params: unknown[]): void {
         this.stmt.clearBindings();
         if (params.length === 0) {
@@ -148,16 +165,16 @@ class WasmStatement implements Statement {
             const inputBindings = params[0] as { [paramName: string]: BindableValue };
 
             // SQLite WASM expects parameter names to include the prefix (@ : or $)
-            // better-sqlite3 automatically maps unprefixed names to @name
-            // We need to add the @ prefix for compatibility
+            // We detect the prefix used in the SQL for each parameter
             const bindings: { [paramName: string]: BindableValue } = {};
             for (const [key, value] of Object.entries(inputBindings)) {
                 // If the key already has a prefix, use it as-is
                 if (key.startsWith('@') || key.startsWith(':') || key.startsWith('$')) {
                     bindings[key] = value;
                 } else {
-                    // Add @ prefix to match better-sqlite3 behavior
-                    bindings[`@${key}`] = value;
+                    // Detect the prefix used in the SQL and apply it
+                    const prefix = this.detectParamPrefix(key);
+                    bindings[`${prefix}${key}`] = value;
                 }
             }
 
@@ -412,30 +429,8 @@ export default class BrowserSqlProvider implements DatabaseProvider {
         this.opfsDbPath = undefined; // Not using OPFS
         this.db.exec("PRAGMA journal_mode = WAL");
 
-        // Initialize with demo data for in-memory databases
-        // (since they won't persist anyway)
-        this.initializeDemoDatabase();
-
         const loadTime = performance.now() - startTime;
         console.log(`[BrowserSqlProvider] In-memory database created in ${loadTime.toFixed(2)}ms`);
-    }
-
-    /**
-     * Initialize the database with demo/starter data.
-     * This should only be called once when creating a new database.
-     *
-     * For OPFS databases, this is called automatically only if the database
-     * doesn't already exist.
-     */
-    initializeDemoDatabase(): void {
-        this.ensureDb();
-        console.log("[BrowserSqlProvider] Initializing database with demo data...");
-        const startTime = performance.now();
-
-        this.db!.exec(demoDbSql);
-
-        const loadTime = performance.now() - startTime;
-        console.log(`[BrowserSqlProvider] Demo data loaded in ${loadTime.toFixed(2)}ms`);
     }
 
     loadFromBuffer(buffer: Uint8Array): void {
@@ -493,7 +488,7 @@ export default class BrowserSqlProvider implements DatabaseProvider {
 
         // Create new statement and cache it
         const stmt = this.db!.prepare(query);
-        const wasmStatement = new WasmStatement(stmt, this.db!, this.sqlite3!);
+        const wasmStatement = new WasmStatement(stmt, this.db!, this.sqlite3!, query);
         this.statementCache.set(query, wasmStatement);
         return wasmStatement;
     }

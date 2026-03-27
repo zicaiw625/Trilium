@@ -1,30 +1,34 @@
-import { EventData } from "../../components/app_context.js";
 import { LOCALES } from "@triliumnext/commons";
-import { readCssVar } from "../../utils/css-var.js";
-import FlexContainer from "./flex_container.js";
-import options from "../../services/options.js";
-import type BasicWidget from "../basic_widget.js";
-import utils from "../../services/utils.js";
+
+import { EventData } from "../../components/app_context.js";
 import { getEnabledExperimentalFeatureIds } from "../../services/experimental_features.js";
+import options from "../../services/options.js";
+import utils, { isIOS, isMobile } from "../../services/utils.js";
+import { readCssVar } from "../../utils/css-var.js";
+import type BasicWidget from "../basic_widget.js";
+import FlexContainer from "./flex_container.js";
 
 /**
  * The root container is the top-most widget/container, from which the entire layout derives.
  *
  * For convenience, the root container has a few class selectors that can be used to target some global state:
  *
+ * - `#root-container.light-theme`, indicates whether the current color scheme is light.
+ * - `#root-container.dark-theme`, indicates whether the current color scheme is dark.
  * - `#root-container.virtual-keyboard-opened`, on mobile devices if the virtual keyboard is open.
  * - `#root-container.horizontal-layout`, if the current layout is horizontal.
  * - `#root-container.vertical-layout`, if the current layout is horizontal.
  */
 export default class RootContainer extends FlexContainer<BasicWidget> {
-    private originalViewportHeight: number;
+
+    private originalWindowHeight: number;
 
     constructor(isHorizontalLayout: boolean) {
         super(isHorizontalLayout ? "column" : "row");
 
+        this.originalWindowHeight = window.innerHeight ?? 0;
         this.id("root-widget");
         this.css("height", "100dvh");
-        this.originalViewportHeight = getViewportHeight();
     }
 
     render(): JQuery<HTMLElement> {
@@ -32,6 +36,8 @@ export default class RootContainer extends FlexContainer<BasicWidget> {
             window.visualViewport?.addEventListener("resize", () => this.#onMobileResize());
         }
 
+        this.#initTheme();
+        this.#setDeviceSpecificClasses();
         this.#setMaxContentWidth();
         this.#setMotion();
         this.#setShadows();
@@ -39,6 +45,7 @@ export default class RootContainer extends FlexContainer<BasicWidget> {
         this.#setThemeCapabilities();
         this.#setLocaleAndDirection(options.get("locale"));
         this.#setExperimentalFeatures();
+        this.#initPWATopbarColor();
 
         return super.render();
     }
@@ -63,9 +70,28 @@ export default class RootContainer extends FlexContainer<BasicWidget> {
         }
     }
 
+    #initTheme() {
+        const colorSchemeChangeObserver = matchMedia("(prefers-color-scheme: dark)")
+        colorSchemeChangeObserver.addEventListener("change", () => this.#updateColorScheme());
+        this.#updateColorScheme();
+        
+        document.body.setAttribute("data-theme-id", options.get("theme"));
+    }
+
+    #updateColorScheme() {
+        const colorScheme = readCssVar(document.body, "theme-style").asString();
+        
+        document.body.classList.toggle("light-theme", colorScheme === "light");
+        document.body.classList.toggle("dark-theme", colorScheme === "dark");
+    }
+
     #onMobileResize() {
-        const currentViewportHeight = getViewportHeight();
-        const isKeyboardOpened = (currentViewportHeight < this.originalViewportHeight);
+        const viewportHeight = window.visualViewport?.height ?? window.innerHeight;
+        const windowHeight = Math.max(window.innerHeight, this.originalWindowHeight); // inner height changes when keyboard is opened, we need to compare with the original height to detect it.
+
+        // If viewport is significantly smaller, keyboard is likely open
+        const isKeyboardOpened = windowHeight - viewportHeight > 150;
+
         this.$widget.toggleClass("virtual-keyboard-opened", isKeyboardOpened);
     }
 
@@ -88,7 +114,7 @@ export default class RootContainer extends FlexContainer<BasicWidget> {
     }
 
     #setBackdropEffects() {
-        const enabled = options.is("backdropEffectsEnabled");
+        const enabled = options.is("backdropEffectsEnabled") && !isMobile();
         document.body.classList.toggle("backdrop-effects-disabled", !enabled);
     }
 
@@ -96,7 +122,7 @@ export default class RootContainer extends FlexContainer<BasicWidget> {
         // Supports background effects
 
         const useBgfx = readCssVar(document.documentElement, "allow-background-effects")
-                        .asBoolean(false);
+            .asBoolean(false);
 
         document.body.classList.toggle("theme-supports-background-effects", useBgfx);
     }
@@ -112,8 +138,29 @@ export default class RootContainer extends FlexContainer<BasicWidget> {
         document.body.lang = locale;
         document.body.dir = correspondingLocale?.rtl ? "rtl" : "ltr";
     }
+
+    #setDeviceSpecificClasses() {
+        if (isIOS()) {
+            document.body.classList.add("ios");
+        }
+    }
+
+    #initPWATopbarColor() {
+        if (!utils.isPWA()) return;
+        const tracker = $("#background-color-tracker");
+
+        if (tracker.length) {
+            const applyThemeColor = () => {
+                let meta = $("meta[name='theme-color']");
+                if (!meta.length) {
+                    meta = $(`<meta name="theme-color">`).appendTo($("head"));
+                }
+                meta.attr("content", tracker.css("color"));
+            };
+
+            tracker.on("transitionend", applyThemeColor);
+            applyThemeColor();
+        }
+    }
 }
 
-function getViewportHeight() {
-    return window.visualViewport?.height ?? window.innerHeight;
-}

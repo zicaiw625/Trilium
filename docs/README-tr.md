@@ -48,26 +48,22 @@ açık kaynaklı, çapraz platform hiyerarşik bir not alma uygulamasıdır.
 edin(https://docs.triliumnotes.org/)**
 
 Dokümantasyonumuz birden fazla formatta mevcuttur:
-- **Online Documentation**: Browse the full documentation at
-  [docs.triliumnotes.org](https://docs.triliumnotes.org/)
-- **In-App Help**: Press `F1` within Trilium to access the same documentation
-  directly in the application
-- **GitHub**: Navigate through the [User Guide](./User%20Guide/User%20Guide/) in
-  this repository
+- **Çevrimiçi Dökümantasyon**: Tüm dökümantasyonu görebilmek için
+  [docs.triliumnotes.org](https://docs.triliumnotes.org/)'a uğrayın
+- **Uygulama içi Yardım**: Aynı dökümantasyona ulaşmak için Trillium
+  içerisindeyken `F1` tuşuna basın
+- **Github**: Bu repodaki [Kullanıcı Rehberi] sayfasına yönelin
 
-### Quick Links
-- [Getting Started Guide](https://docs.triliumnotes.org/)
-- [Installation Instructions](https://docs.triliumnotes.org/user-guide/setup)
-- [Docker
-  Setup](https://docs.triliumnotes.org/user-guide/setup/server/installation/docker)
-- [Upgrading
-  TriliumNext](https://docs.triliumnotes.org/user-guide/setup/upgrading)
-- [Basic Concepts and
-  Features](https://docs.triliumnotes.org/user-guide/concepts/notes)
+### Hızlı linkler
+- [Başlangıç Kılavuzu](https://docs.triliumnotes.org/)
+- Kurulum Klavuzu
+- Docker kurulumu
+- [TrilliumNext Güncelleme]
+- Basit Kavramlar ve Özellikler
 - [Patterns of Personal Knowledge
   Base](https://docs.triliumnotes.org/user-guide/misc/patterns-of-personal-knowledge)
 
-## 🎁 Features
+## 🎁 Özellikler
 
 * Notes can be arranged into arbitrarily deep tree. Single note can be placed
   into multiple places in the tree (see

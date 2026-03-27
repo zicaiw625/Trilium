@@ -1,15 +1,9 @@
-
-
-import { utils as coreUtils } from "@triliumnext/core";
+import { getCrypto,utils as coreUtils } from "@triliumnext/core";
 import chardet from "chardet";
 import crypto from "crypto";
-import { t } from "i18next";
 import { release as osRelease } from "os";
 import path from "path";
 import stripBom from "strip-bom";
-
-import log from "./log.js";
-import type NoteMeta from "./meta/note_meta.js";
 
 const osVersion = osRelease().split('.').map(Number);
 
@@ -51,10 +45,8 @@ export function fromBase64(encodedText: string) {
     return Buffer.from(encodedText, "base64");
 }
 
-export function hmac(secret: any, value: any) {
-    const hmac = crypto.createHmac("sha256", Buffer.from(secret.toString(), "ascii"));
-    hmac.update(value.toString());
-    return hmac.digest("base64");
+export function hmac(secret: string | Uint8Array, value: string | Uint8Array) {
+    return getCrypto().hmac(secret, value);
 }
 
 /**
@@ -87,41 +79,6 @@ export function constantTimeCompare(a: string | null | undefined, b: string | nu
     return crypto.timingSafeEqual(bufA, bufB);
 }
 
-export function sanitizeSqlIdentifier(str: string) {
-    return str.replace(/[^A-Za-z0-9_]/g, "");
-}
-
-export function toObject<T, K extends string | number | symbol, V>(array: T[], fn: (item: T) => [K, V]): Record<K, V> {
-    const obj: Record<K, V> = {} as Record<K, V>; // TODO: unsafe?
-
-    for (const item of array) {
-        const ret = fn(item);
-
-        obj[ret[0]] = ret[1];
-    }
-
-    return obj;
-}
-
-export function stripTags(text: string) {
-    return text.replace(/<(?:.|\n)*?>/gm, "");
-}
-
-export function escapeRegExp(str: string) {
-    return str.replace(/([.*+?^=!:${}()|\[\]\/\\])/g, "\\$1");
-}
-
-export async function crash(message: string) {
-    if (isElectron) {
-        const electron = await import("electron");
-        electron.dialog.showErrorBox(t("modals.error_title"), message);
-        electron.app.exit(1);
-    } else {
-        log.error(message);
-        process.exit(1);
-    }
-}
-
 /** @deprecated */
 export function getContentDisposition(filename: string) {
     return coreUtils.getContentDisposition(filename);
@@ -147,61 +104,6 @@ export function formatDownloadTitle(fileName: string, type: string | null, mime:
     return coreUtils.formatDownloadTitle(fileName, type, mime);
 }
 
-export function removeTextFileExtension(filePath: string) {
-    const extension = path.extname(filePath).toLowerCase();
-
-    switch (extension) {
-        case ".md":
-        case ".mdx":
-        case ".markdown":
-        case ".html":
-        case ".htm":
-        case ".excalidraw":
-        case ".mermaid":
-        case ".mmd":
-            return filePath.substring(0, filePath.length - extension.length);
-        default:
-            return filePath;
-    }
-}
-
-export function getNoteTitle(filePath: string, replaceUnderscoresWithSpaces: boolean, noteMeta?: NoteMeta) {
-    const trimmedNoteMeta = noteMeta?.title?.trim();
-    if (trimmedNoteMeta) return trimmedNoteMeta;
-
-    const basename = path.basename(removeTextFileExtension(filePath));
-    return replaceUnderscoresWithSpaces ? basename.replace(/_/g, " ").trim() : basename;
-}
-
-export function timeLimit<T>(promise: Promise<T>, limitMs: number, errorMessage?: string): Promise<T> {
-    // TriliumNextTODO: since TS avoids this from ever happening – do we need this check?
-    if (!promise || !promise.then) {
-        // it's not actually a promise
-        return promise;
-    }
-
-    // better stack trace if created outside of promise
-    const errorTimeLimit = new Error(errorMessage || `Process exceeded time limit ${limitMs}`);
-
-    return new Promise((res, rej) => {
-        let resolved = false;
-
-        promise
-            .then((result) => {
-                resolved = true;
-
-                res(result);
-            })
-            .catch((error) => rej(error));
-
-        setTimeout(() => {
-            if (!resolved) {
-                rej(errorTimeLimit);
-            }
-        }, limitMs);
-    });
-}
-
 /** @deprecated */
 export function removeDiacritic(str: string) {
     return coreUtils.removeDiacritic(str);
@@ -215,37 +117,6 @@ export function normalize(str: string) {
 /** @deprecated */
 export function toMap<T extends Record<string, any>>(list: T[], key: keyof T) {
     return coreUtils.toMap(list, key);
-}
-
-// try to turn 'true' and 'false' strings from process.env variables into boolean values or undefined
-export function envToBoolean(val: string | undefined) {
-    if (val === undefined || typeof val !== "string") return undefined;
-
-    const valLc = val.toLowerCase().trim();
-
-    if (valLc === "true") return true;
-    if (valLc === "false") return false;
-
-    return undefined;
-}
-
-/**
- * Parses a string value to an integer. If the resulting number is NaN or undefined, the result is also undefined.
- *
- * @param val the value to parse.
- * @returns the parsed value.
- */
-export function stringToInt(val: string | undefined) {
-    if (!val) {
-        return undefined;
-    }
-
-    const parsed = parseInt(val, 10);
-    if (Number.isNaN(parsed)) {
-        return undefined;
-    }
-
-    return parsed;
 }
 
 /**
@@ -265,48 +136,6 @@ export function getResourceDir() {
     }
 
     return path.join(__dirname, "..");
-}
-
-// TODO: Deduplicate with src/public/app/services/utils.ts
-/**
- * Compares two semantic version strings.
- * Returns:
- *   1  if v1 is greater than v2
- *   0  if v1 is equal to v2
- *   -1 if v1 is less than v2
- *
- * @param v1 First version string
- * @param v2 Second version string
- * @returns
- */
-function compareVersions(v1: string, v2: string): number {
-    // Remove 'v' prefix and everything after dash if present
-    v1 = v1.replace(/^v/, "").split("-")[0];
-    v2 = v2.replace(/^v/, "").split("-")[0];
-
-    const v1parts = v1.split(".").map(Number);
-    const v2parts = v2.split(".").map(Number);
-
-    // Pad shorter version with zeros
-    while (v1parts.length < 3) v1parts.push(0);
-    while (v2parts.length < 3) v2parts.push(0);
-
-    // Compare major version
-    if (v1parts[0] !== v2parts[0]) {
-        return v1parts[0] > v2parts[0] ? 1 : -1;
-    }
-
-    // Compare minor version
-    if (v1parts[1] !== v2parts[1]) {
-        return v1parts[1] > v2parts[1] ? 1 : -1;
-    }
-
-    // Compare patch version
-    if (v1parts[2] !== v2parts[2]) {
-        return v1parts[2] > v2parts[2] ? 1 : -1;
-    }
-
-    return 0;
 }
 
 /**
@@ -338,114 +167,10 @@ export function processStringOrBuffer(data: string | Buffer | null) {
     }
 }
 
-/**
- * Normalizes URL by removing trailing slashes and fixing double slashes.
- * Preserves the protocol (http://, https://) but removes trailing slashes from the rest.
- *
- * @param url The URL to normalize
- * @returns The normalized URL without trailing slashes
- */
-export function normalizeUrl(url: string | null | undefined): string | null | undefined {
-    if (!url || typeof url !== 'string') {
-        return url;
-    }
-
-    // Trim whitespace
-    url = url.trim();
-
-    if (!url) {
-        return url;
-    }
-
-    // Fix double slashes (except in protocol) first
-    url = url.replace(/([^:]\/)\/+/g, '$1');
-
-    // Remove trailing slash, but preserve protocol
-    if (url.endsWith('/') && !url.match(/^https?:\/\/$/)) {
-        url = url.slice(0, -1);
-    }
-
-    return url;
-}
-
-/**
- * Normalizes a path pattern for custom request handlers.
- * Ensures both trailing slash and non-trailing slash versions are handled.
- *
- * @param pattern The original pattern from customRequestHandler attribute
- * @returns An array of patterns to match both with and without trailing slash
- */
-export function normalizeCustomHandlerPattern(pattern: string | null | undefined): (string | null | undefined)[] {
-    if (!pattern || typeof pattern !== 'string') {
-        return [pattern];
-    }
-
-    pattern = pattern.trim();
-
-    if (!pattern) {
-        return [pattern];
-    }
-
-    // If pattern already ends with optional trailing slash, return as-is
-    if (pattern.endsWith('/?$') || pattern.endsWith('/?)')) {
-        return [pattern];
-    }
-
-    // If pattern ends with $, handle it specially
-    if (pattern.endsWith('$')) {
-        const basePattern = pattern.slice(0, -1);
-
-        // If already ends with slash, create both versions
-        if (basePattern.endsWith('/')) {
-            const withoutSlash = `${basePattern.slice(0, -1)  }$`;
-            const withSlash = pattern;
-            return [withoutSlash, withSlash];
-        }
-        // Add optional trailing slash
-        const withSlash = `${basePattern  }/?$`;
-        return [withSlash];
-
-    }
-
-    // For patterns without $, add both versions
-    if (pattern.endsWith('/')) {
-        const withoutSlash = pattern.slice(0, -1);
-        return [withoutSlash, pattern];
-    }
-    const withSlash = `${pattern  }/`;
-    return [pattern, withSlash];
-
-}
-
-export function formatUtcTime(time: string) {
-    return time.replace("T", " ").substring(0, 19);
-}
-
-// TODO: Deduplicate with client utils
-export function formatSize(size: number | null | undefined) {
-    if (size === null || size === undefined) {
-        return "";
-    }
-
-    size = Math.max(Math.round(size / 1024), 1);
-
-    if (size < 1024) {
-        return `${size} KiB`;
-    }
-    return `${Math.round(size / 102.4) / 10} MiB`;
-
-}
-
-function slugify(text: string) {
-    return text
-        .normalize("NFC") // keep composed form, preserves accents
-        .toLowerCase()
-        .replace(/[^\p{Letter}\p{Number}]+/gu, "-") // replace non-letter/number with "-"
-        .replace(/(^-|-$)+/g, ""); // trim dashes
-}
-
 /** @deprecated */
 export const escapeHtml = coreUtils.escapeHtml;
+/** @deprecated */
+export const escapeRegExp = coreUtils.escapeRegExp;
 /** @deprecated */
 export const unescapeHtml = coreUtils.unescapeHtml;
 /** @deprecated */
@@ -454,18 +179,25 @@ export const randomSecureToken = coreUtils.randomSecureToken;
 export const safeExtractMessageAndStackFromError = coreUtils.safeExtractMessageAndStackFromError;
 /** @deprecated */
 export const isEmptyOrWhitespace = coreUtils.isEmptyOrWhitespace;
+/** @deprecated */
+export const normalizeUrl = coreUtils.normalizeUrl;
+export const timeLimit = coreUtils.timeLimit;
+export const sanitizeSqlIdentifier = coreUtils.sanitizeSqlIdentifier;
+
+export function waitForStreamToFinish(stream: any): Promise<void> {
+    return new Promise((resolve, reject) => {
+        stream.on("finish", () => resolve());
+        stream.on("error", (err) => reject(err));
+    });
+}
 
 export default {
-    compareVersions,
     constantTimeCompare,
-    crash,
-    envToBoolean,
     escapeHtml,
     escapeRegExp,
     formatDownloadTitle,
     fromBase64,
     getContentDisposition,
-    getNoteTitle,
     getResourceDir,
     hashedBlobId,
     hmac,
@@ -478,21 +210,14 @@ export default {
     md5,
     newEntityId,
     normalize,
-    normalizeCustomHandlerPattern,
-    normalizeUrl,
     quoteRegex,
     randomSecureToken,
     randomString,
     removeDiacritic,
-    removeTextFileExtension,
     replaceAll,
     safeExtractMessageAndStackFromError,
-    sanitizeSqlIdentifier,
-    stripTags,
-    slugify,
-    timeLimit,
     toBase64,
     toMap,
-    toObject,
-    unescapeHtml
+    unescapeHtml,
+    waitForStreamToFinish
 };

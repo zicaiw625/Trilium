@@ -68,7 +68,7 @@
   "attachment_detail_2": {
     "deletion_reason": ", deoarece nu există o legătură către atașament în conținutul notiței. Pentru a preveni ștergerea, trebuie adăugată înapoi o legătură către atașament în conținut sau atașamentul trebuie convertit în notiță.",
     "link_copied": "O legătură către atașament a fost copiată în clipboard.",
-    "role_and_size": "Rol: {{role}}, dimensiune: {{size}}",
+    "role_and_size": "Rol: {{role}}, dimensiune: {{size}}, MIME: {{- mimeType}}",
     "unrecognized_role": "Rol atașament necunoscut: „{{role}}”.",
     "will_be_deleted_in": "Acest atașament va fi șters automat în {{time}}",
     "will_be_deleted_soon": "Acest atașament va fi șters automat în curând"
@@ -293,7 +293,8 @@
     "expand_tooltip": "Expandează subnotițele directe ale acestei colecții (un singur nivel de adâncime). Pentru mai multe opțiuni, apăsați săgeata din dreapta.",
     "expand_first_level": "Expandează subnotițele directe",
     "expand_nth_level": "Expandează pe {{depth}} nivele",
-    "expand_all_levels": "Expandează pe toate nivelele"
+    "expand_all_levels": "Expandează pe toate nivelele",
+    "hide_child_notes": "Ascunde subnotițele din arbore"
   },
   "bookmark_switch": {
     "bookmark": "Semn de carte",
@@ -569,7 +570,7 @@
     "file_size": "Dimensiunea fișierului",
     "file_type": "Tipul fișierului",
     "note_id": "ID-ul notiței",
-    "open": "Deschide",
+    "open": "Deschide în exterior",
     "original_file_name": "Denumirea originală a fișierului",
     "title": "Fișier",
     "upload_failed": "Încărcarea a unei noi revizii ale fișierului a eșuat.",
@@ -795,7 +796,8 @@
   },
   "inherited_attribute_list": {
     "no_inherited_attributes": "Niciun atribut moștenit.",
-    "title": "Atribute moștenite"
+    "title": "Atribute moștenite",
+    "none": "niciunul"
   },
   "jump_to_note": {
     "search_button": "Caută în întregul conținut",
@@ -880,7 +882,11 @@
     "convert_into_attachment_prompt": "Doriți convertirea notiței „{{title}}” într-un atașament al notiței părinte?",
     "print_pdf": "Exportare ca PDF...",
     "open_note_on_server": "Deschide notița pe server",
-    "view_revisions": "Revizii ale notițelor..."
+    "view_revisions": "Revizii ale notițelor...",
+    "export_as_image": "Exportează ca imagine",
+    "export_as_image_png": "PNG (bitmap)",
+    "export_as_image_svg": "SVG (vectorial)",
+    "note_map": "Harta notițelor"
   },
   "note_erasure_timeout": {
     "deleted_notes_erased": "Notițele șterse au fost eliminate permanent.",
@@ -899,7 +905,9 @@
     "note_size_info": "Dimensiunea notiței reprezintă o aproximare a cerințelor de stocare ale acestei notițe. Ia în considerare conținutul notiței dar și ale reviziilor sale.",
     "subtree_size": "(dimensiunea sub-arborelui: {{size}} în {{count}} notițe)",
     "title": "Informații despre notiță",
-    "type": "Tip"
+    "type": "Tip",
+    "mime": "Tip MIME",
+    "show_similar_notes": "Afișează notițe similare"
   },
   "note_launcher": {
     "this_launcher_doesnt_define_target_note": "Acesată scurtătură nu definește o notiță-destinație."
@@ -1046,7 +1054,6 @@
     "enter_title_of_new_note": "Introduceți titlul noii notițe",
     "note_already_in_diagram": "Notița „{{title}}” deja se află pe diagramă.",
     "note_not_found": "Notița „{{noteId}}” nu a putut fi găsită!",
-    "open_in_new_tab": "Deschide într-un tab nou",
     "remove_note": "Șterge notița",
     "remove_relation": "Șterge relația",
     "rename_note": "Redenumește notița",
@@ -1085,10 +1092,6 @@
     "rename_relation": "Redenumește relația",
     "rename_relation_from": "Redenumește relația din",
     "to": "În"
-  },
-  "render": {
-    "note_detail_render_help_1": "Această notă informativă este afișată deoarece această notiță de tip „Randare HTML” nu are relația necesară pentru a funcționa corespunzător.",
-    "note_detail_render_help_2": "Notița de tipul „Render HTML” este utilizată pentru <a class=\"external\" href=\"https://triliumnext.github.io/Docs/Wiki/scripts.html\">scriptare</a>. Pe scurt, se folosește o notiță de tip cod HTML (opțional cu niște JavaScript) și această notiță o va randa. Pentru a funcționa, trebuie definită o <a class=\"external\" href=\"https://triliumnext.github.io/Docs/Wiki/attributes.html\">relație</a> denumită „renderNote” ce indică notița HTML de randat."
   },
   "revisions": {
     "confirm_delete": "Doriți ștergerea acestei revizii?",
@@ -1157,7 +1160,8 @@
     "search_parameters": "Parametrii de căutare",
     "search_script": "script de căutare",
     "search_string": "șir de căutat",
-    "unknown_search_option": "Opțiune de căutare necunoscută „{{searchOptionName}}”"
+    "unknown_search_option": "Opțiune de căutare necunoscută „{{searchOptionName}}”",
+    "view_options": "Opțiuni de afișare:"
   },
   "search_engine": {
     "baidu": "Baidu",
@@ -1309,8 +1313,17 @@
     },
     "bundle-error": {
       "title": "Eroare la încărcarea unui script personalizat",
-      "message": "Scriptul din notița cu ID-ul „{{id}}”, întitulată „{{title}}” nu a putut fi executată din cauza:\n\n{{message}}"
-    }
+      "message": "Scriptul nu a putut fi executat din cauza:\n\n{{message}}"
+    },
+    "widget-list-error": {
+      "title": "Nu s-a putut obține lista de widget-uri de la server"
+    },
+    "widget-render-error": {
+      "title": "Nu s-a putut randa un widget React"
+    },
+    "widget-missing-parent": "Widget-ul personalizat nu are definită proprietatea necesară „{{property}}“.\n\nDacă acest script este menit să ruleze fără interfață grafică, folosiți '#run=frontendStartup'.",
+    "open-script-note": "Deschide notița scriptului",
+    "scripting-error": "Eroare script personalizat: {{title}}"
   },
   "tray": {
     "enable_tray": "Activează system tray-ul (este necesară repornirea aplicației pentru a avea efect)",
@@ -1357,11 +1370,6 @@
   "vim_key_bindings": {
     "enable_vim_keybindings": "Permite utilizarea combinațiilor de taste în stil Vim pentru notițele de tip cod (fără modul ex)",
     "use_vim_keybindings_in_code_notes": "Combinații de taste Vim"
-  },
-  "web_view": {
-    "create_label": "Pentru a începe, creați o etichetă cu adresa URL de încorporat, e.g. #webViewSrc=\"https://www.google.com\"",
-    "embed_websites": "Notițele de tip „Vizualizare web” permit încorporarea site-urilor web în Trilium.",
-    "web_view": "Vizualizare web"
   },
   "wrap_lines": {
     "enable_line_wrap": "Activează trecerea automată pe rândul următor (poate necesita o reîncărcare a interfeței pentru a avea efect)",
@@ -1417,7 +1425,10 @@
     "convert-to-attachment-confirm": "Doriți convertirea notițelor selectate în atașamente ale notiței părinte? Această operațiune se aplică doar notițelor de tip imagine, celelalte vor fi ignorate.",
     "open-in-popup": "Editare rapidă",
     "archive": "Arhivează",
-    "unarchive": "Dezarhivează"
+    "unarchive": "Dezarhivează",
+    "open-in-a-new-window": "Deschide în fereastră nouă",
+    "hide-subtree": "Ascunde subnotițele",
+    "show-subtree": "Afișează subnotițele"
   },
   "shared_info": {
     "help_link": "Pentru informații vizitați <a href=\"https://triliumnext.github.io/Docs/Wiki/sharing.html\">wiki-ul</a>.",
@@ -1445,7 +1456,6 @@
     "geo-map": "Hartă geografică",
     "beta-feature": "Beta",
     "task-list": "Listă de sarcini",
-    "ai-chat": "Discuție cu AI-ul",
     "new-feature": "Nou",
     "collections": "Colecții"
   },
@@ -1478,12 +1488,27 @@
   },
   "highlights_list_2": {
     "options": "Setări",
-    "title": "Listă de evidențieri"
+    "title": "Listă de evidențieri",
+    "title_with_count_one": "{{count}} evidențiere",
+    "title_with_count_few": "{{count}} evidențieri",
+    "title_with_count_other": "{{count}} de evidențieri",
+    "modal_title": "Configurează lista de evidențieri",
+    "menu_configure": "Configurează lista de evidențieri...",
+    "no_highlights": "Nu există nicio evidențiere."
   },
   "note_icon": {
     "change_note_icon": "Schimbă iconița notiței",
     "reset-default": "Resetează la iconița implicită",
-    "search": "Căutare:"
+    "search": "Căutare:",
+    "search_placeholder_one": "Caută printre {{number}} iconițe dintr-un pachet",
+    "search_placeholder_few": "Caută printre {{number}} iconițe din {{count}} pachete",
+    "search_placeholder_other": "Caută printre {{number}} iconițe din {{count}} de pachete",
+    "search_placeholder_filtered": "Căutați printre {{number}} iconițe în {{name}}",
+    "filter": "Filtrează",
+    "filter-none": "Toate iconițele",
+    "filter-default": "Iconițele implicite",
+    "icon_tooltip": "{{name}}\nPachet iconițe: {{iconPack}}",
+    "no_results": "Nu s-a găsit nicio iconiță."
   },
   "show_highlights_list_widget_button": {
     "show_highlights_list": "Afișează lista de evidențieri"
@@ -1521,7 +1546,17 @@
     "refresh-saved-search-results": "Reîmprospătează căutarea salvată",
     "unhoist": "Defocalizează notița",
     "toggle-sidebar": "Comută bara laterală",
-    "dropping-not-allowed": "Aici nu este permisă plasarea notițelor."
+    "dropping-not-allowed": "Aici nu este permisă plasarea notițelor.",
+    "clone-indicator-tooltip": "Această notiță are {{- count}} părinți: {{- parents}}",
+    "clone-indicator-tooltip-single": "Această notiță este clonată (un singur părinte: {{- parent}})",
+    "shared-indicator-tooltip": "Această notiță este partajată public",
+    "shared-indicator-tooltip-with-url": "Această notiță este partajată public la: {{- url}}",
+    "subtree-hidden-tooltip_one": "{{count}} subnotiță ascunsă din arbore",
+    "subtree-hidden-tooltip_few": "{{count}} subnotițe ascunse din arbore",
+    "subtree-hidden-tooltip_other": "{{count}} de subnotițe ascunse din arbore",
+    "subtree-hidden-moved-title": "Adăugat în {{title}}",
+    "subtree-hidden-moved-description-collection": "Subnotițele din această colecție sunt ascunse din arbore.",
+    "subtree-hidden-moved-description-other": "Subnotițele din această notiță sunt ascunse."
   },
   "title_bar_buttons": {
     "window-on-top": "Menține fereastra mereu vizibilă"
@@ -1529,12 +1564,24 @@
   "note_detail": {
     "could_not_find_typewidget": "Nu s-a putut găsi widget-ul corespunzător tipului „{{type}}”",
     "printing": "Imprimare în curs...",
-    "printing_pdf": "Exportare ca PDF în curs..."
+    "printing_pdf": "Exportare ca PDF în curs...",
+    "print_report_title": "Raport de imprimare",
+    "print_report_collection_content_one": "{{count}} notiță din colecție nu a putut fi imprimată deoarece nu este suportată sau este protejată.",
+    "print_report_collection_content_few": "{{count}} notițe din colecție nu au putut fi imprimate deoarece nu sunt suportate sau sunt protejate.",
+    "print_report_collection_content_other": "{{count}} de notițe din colecție nu au putut fi imprimate deoarece nu sunt suportate sau sunt protejate.",
+    "print_report_collection_details_button": "Afișează detalii",
+    "print_report_collection_details_ignored_notes": "Notițe ignorate"
   },
   "note_title": {
     "placeholder": "introduceți titlul notiței aici...",
     "created_on": "Creată la <Value />",
-    "last_modified": "Modificată la <Value />"
+    "last_modified": "Modificată la <Value />",
+    "note_type_switcher_label": "Schimbă din {{type}} la:",
+    "note_type_switcher_others": "Mai multe tipuri de notițe",
+    "note_type_switcher_templates": "Șablon",
+    "note_type_switcher_collection": "Colecție",
+    "edited_notes": "Notițe editate în această zi",
+    "promoted_attributes": "Atribute promovate"
   },
   "revisions_snapshot_limit": {
     "erase_excess_revision_snapshots": "Șterge acum reviziile excesive",
@@ -1555,7 +1602,11 @@
     "configure_launchbar": "Configurează bara de lansare"
   },
   "sql_result": {
-    "no_rows": "Nu s-a găsit niciun rând pentru această interogare"
+    "no_rows": "Nu s-a găsit niciun rând pentru această interogare",
+    "not_executed": "Această interogare nu a fost executată încă.",
+    "failed": "Interogarea SQL a eșuat",
+    "statement_result": "Rezultatul comenzii SQL",
+    "execute_now": "Execută acum"
   },
   "sql_table_schemas": {
     "tables": "Tabele"
@@ -1577,7 +1628,8 @@
   },
   "toc": {
     "options": "Setări",
-    "table_of_contents": "Cuprins"
+    "table_of_contents": "Cuprins",
+    "no_headings": "Niciun titlu."
   },
   "watched_file_update_status": {
     "file_last_modified": "Fișierul <code class=\"file-path\"></code> a fost ultima oară modificat la data de <span class=\"file-last-modified\"></span>.",
@@ -1671,6 +1723,7 @@
   "electron_context_menu": {
     "add-term-to-dictionary": "Adaugă „{{term}}” în dicționar",
     "copy": "Copiază",
+    "copy-as-markdown": "Copiază ca markdown",
     "copy-link": "Copiază legătura",
     "cut": "Decupează",
     "paste": "Lipește",
@@ -1698,8 +1751,8 @@
     "show-recent-notes": "Afișează notițele recente"
   },
   "electron_integration": {
-    "background-effects": "Activează efectele de fundal (doar pentru Windows 11)",
-    "background-effects-description": "Efectul Mica adaugă un fundal estompat și elegant ferestrelor aplicațiilor, creând profunzime și un aspect modern. Opțiunea „Bară de titlu nativă” trebuie să fie dezactivată.",
+    "background-effects": "Activează efectele de fundal",
+    "background-effects-description": "Adaugă un fundal estompat și elegant ferestrelor aplicațiilor, creând profunzime și un aspect modern. Opțiunea „Bară de titlu nativă” trebuie să fie dezactivată.",
     "desktop-application": "Aplicația desktop",
     "native-title-bar": "Bară de titlu nativă",
     "native-title-bar-description": "Pentru Windows și macOS, dezactivarea bării de titlu native face aplicația să pară mai compactă. Pe Linux, păstrarea bării integrează mai bine aplicația cu restul sistemului de operare.",
@@ -1718,7 +1771,8 @@
   "geo-map": {
     "create-child-note-title": "Crează o notiță nouă și adaug-o pe hartă",
     "unable-to-load-map": "Nu s-a putut încărca harta.",
-    "create-child-note-instruction": "Click pe hartă pentru a crea o nouă notiță la acea poziție sau apăsați Escape pentru a anula."
+    "create-child-note-instruction": "Click pe hartă pentru a crea o nouă notiță la acea poziție sau apăsați Escape pentru a anula.",
+    "create-child-note-text": "Adaugă marcaj"
   },
   "duration": {
     "days": "zile",
@@ -1779,149 +1833,6 @@
   "toggle_read_only_button": {
     "lock-editing": "Blochează editarea",
     "unlock-editing": "Deblochează editarea"
-  },
-  "ai_llm": {
-    "not_started": "Nu s-a pornit",
-    "title": "Setări AI",
-    "processed_notes": "Notițe procesate",
-    "total_notes": "Totalul de notițe",
-    "progress": "Progres",
-    "queued_notes": "Notițe în curs de procesare",
-    "failed_notes": "Notițe ce au eșuat",
-    "last_processed": "Ultima procesare",
-    "refresh_stats": "Reîmprospătare statistici",
-    "enable_ai_features": "Activează funcțiile AI/LLM",
-    "enable_ai_description": "Activează funcțiile AI precum sumarizarea notițelor, generarea de conținut și alte capabilități ale LLM-ului",
-    "openai_tab": "OpenAI",
-    "anthropic_tab": "Anthropic",
-    "voyage_tab": "Voyage AI",
-    "ollama_tab": "Ollama",
-    "enable_ai": "Activează funcții AI/LLM",
-    "enable_ai_desc": "Activează funcțiile AI precum sumarizarea notițelor, generarea de conținut și alte capabilități ale LLM-ului",
-    "provider_configuration": "Setările furnizorului de AI",
-    "provider_precedence": "Ordinea de precedență a furnizorilor",
-    "provider_precedence_description": "Lista de furnizori în ordinea de precedență, separate de virgulă (ex. „openai,anthropic,ollama”)",
-    "temperature": "Temperatură",
-    "temperature_description": "Controlează aleatoritatea din răspunsuri (0 = deterministic, 2 = maxim aleator)",
-    "system_prompt": "Prompt-ul de sistem",
-    "system_prompt_description": "Prompt-ul de sistem folosit pentru toate interacțiunile cu AI-ul",
-    "openai_configuration": "Configurația OpenAI",
-    "openai_settings": "Setările OpenAI",
-    "api_key": "Cheie API",
-    "url": "URL de bază",
-    "model": "Model",
-    "openai_api_key_description": "Cheia de API din OpenAI pentru a putea accesa serviciile de AI",
-    "anthropic_api_key_description": "Cheia de API din Anthropic pentru a accesa modelele Claude",
-    "default_model": "Modelul implicit",
-    "openai_model_description": "Exemple: gpt-4o, gpt-4-turbo, gpt-3.5-turbo",
-    "base_url": "URL de bază",
-    "openai_url_description": "Implicit: https://api.openai.com/v1",
-    "anthropic_settings": "Setări Anthropic",
-    "anthropic_url_description": "URL de bază pentru API-ul Anthropic (implicit: https://api.anthropic.com)",
-    "anthropic_model_description": "Modele Anthropic Claude pentru auto-completare",
-    "voyage_settings": "Setări Voyage AI",
-    "ollama_settings": "Setări Ollama",
-    "ollama_url_description": "URL pentru API-ul Ollama (implicit: http://localhost:11434)",
-    "ollama_model_description": "Modelul Ollama pentru auto-completare",
-    "anthropic_configuration": "Configurația Anthropic",
-    "voyage_configuration": "Configurația Voyage AI",
-    "voyage_url_description": "Implicit: https://api.voyageai.com/v1",
-    "ollama_configuration": "Configurația Ollama",
-    "enable_ollama": "Activează Ollama",
-    "enable_ollama_description": "Activează Ollama pentru a putea utiliza modele AI locale",
-    "ollama_url": "URL Ollama",
-    "ollama_model": "Model Ollama",
-    "refresh_models": "Reîmprospătează modelele",
-    "refreshing_models": "Reîmprospătare...",
-    "enable_automatic_indexing": "Activează indexarea automată",
-    "rebuild_index": "Reconstruire index",
-    "rebuild_index_error": "Eroare la reconstruirea indexului. Verificați logurile pentru mai multe detalii.",
-    "note_title": "Titlul notiței",
-    "error": "Eroare",
-    "last_attempt": "Ultima încercare",
-    "actions": "Acțiuni",
-    "retry": "Reîncercare",
-    "partial": "{{ percentage }}% finalizat",
-    "retry_queued": "Notiță pusă în coadă pentru reîncercare",
-    "retry_failed": "Nu s-a putut pune notița în coada pentru reîncercare",
-    "max_notes_per_llm_query": "Număr maximum de notițe per interogare",
-    "max_notes_per_llm_query_description": "Numărul maxim de notițe similare incluse în contextul pentru AI",
-    "active_providers": "Furnizori activi",
-    "disabled_providers": "Furnizori dezactivați",
-    "remove_provider": "Șterge furnizorul din căutare",
-    "restore_provider": "Restaurează furnizorul pentru căutare",
-    "similarity_threshold": "Prag de similaritate",
-    "similarity_threshold_description": "Scorul minim de similaritate (0-1) pentru a include notițele în contextul interogărilor LLM",
-    "reprocess_index": "Reconstruiește indexul de căutare",
-    "reprocessing_index": "Reconstruire...",
-    "reprocess_index_started": "S-a pornit în fundal optimizarea indexului de căutare",
-    "reprocess_index_error": "Eroare la reconstruirea indexului de căutare",
-    "index_rebuild_progress": "Reconstruire index în curs",
-    "index_rebuilding": "Optimizare index ({{percentage}}%)",
-    "index_rebuild_complete": "Optimizarea indexului a avut loc cu succes",
-    "index_rebuild_status_error": "Eroare la verificarea stării reconstruirii indexului",
-    "never": "Niciodată",
-    "processing": "Procesare ({{percentage}}%)",
-    "incomplete": "Incomplet ({{percentage}}%)",
-    "complete": "Complet (100%)",
-    "refreshing": "Reîmprospătare...",
-    "auto_refresh_notice": "Reîmprospătare automată la fiecare {{seconds}} secunde",
-    "note_queued_for_retry": "Notiță pusă în coadă pentru reîncercare",
-    "failed_to_retry_note": "Eroare la reîncercarea notiței",
-    "all_notes_queued_for_retry": "Toate notițele eșuate au fost puse în coada de reîncercare",
-    "failed_to_retry_all": "Eroare la reîncercarea notițelor",
-    "ai_settings": "Setări AI",
-    "api_key_tooltip": "Cheia API pentru accesarea serviciului",
-    "empty_key_warning": {
-      "anthropic": "Cheia API pentru Anthropic lipsește. Introduceți o cheie API validă.",
-      "openai": "Cheia API pentru OpenAI lipsește. Introduceți o cheie API validă.",
-      "voyage": "Cheia API pentru Voyage lipsește. Introduceți o cheie API validă.",
-      "ollama": "Cheia API pentru Ollama lipsește. Introduceți o cheie API validă."
-    },
-    "agent": {
-      "processing": "Procesare...",
-      "thinking": "Raționalizare...",
-      "loading": "Încărcare...",
-      "generating": "Generare..."
-    },
-    "name": "AI",
-    "openai": "OpenAI",
-    "use_enhanced_context": "Folosește context îmbogățit",
-    "enhanced_context_description": "Oferă AI-ului mai multe informații de context din notiță și notițele similare pentru răspunsuri mai bune",
-    "show_thinking": "Afișează procesul de raționalizare",
-    "show_thinking_description": "Afișează lanțul de acțiuni din procesul de gândire al AI-ului",
-    "enter_message": "Introduceți mesajul...",
-    "error_contacting_provider": "Eroare la contactarea furnizorului de AI. Verificați setările și conexiunea la internet.",
-    "error_generating_response": "Eroare la generarea răspunsului AI",
-    "index_all_notes": "Indexează toate notițele",
-    "index_status": "Starea indexării",
-    "indexed_notes": "Notițe indexate",
-    "indexing_stopped": "Indexarea s-a oprit",
-    "indexing_in_progress": "Indexare în curs...",
-    "last_indexed": "Ultima indexare",
-    "note_chat": "Discuție pe baza notițelor",
-    "sources": "Surse",
-    "start_indexing": "Indexează",
-    "use_advanced_context": "Folosește context îmbogățit",
-    "ollama_no_url": "Ollama nu este configurat. Introduceți un URL corect.",
-    "chat": {
-      "root_note_title": "Discuții cu AI-ul",
-      "root_note_content": "Această notiță stochează conversația cu AI-ul.",
-      "new_chat_title": "Discuție nouă",
-      "create_new_ai_chat": "Crează o nouă discuție cu AI-ul"
-    },
-    "create_new_ai_chat": "Crează o nouă discuție cu AI-ul",
-    "configuration_warnings": "Sunt câteva probleme la configurația AI-ului. Verificați setările.",
-    "experimental_warning": "Funcția LLM este experimentală.",
-    "selected_provider": "Furnizor selectat",
-    "selected_provider_description": "Selectați furnizorul de AI pentru funcțiile de discuție și completare",
-    "select_model": "Selectați modelul...",
-    "select_provider": "Selectați furnizorul...",
-    "ai_enabled": "Funcționalitățile AI au fost activate",
-    "ai_disabled": "Funcționalitățile AI au fost dezactivate",
-    "no_models_found_online": "Nu s-a găsit niciun model. Verificați cheia API și configurația.",
-    "no_models_found_ollama": "Nu s-a găsit niciun model Ollama. Verificați dacă Ollama rulează.",
-    "error_fetching": "Eroare la obținerea modelelor: {{error}}"
   },
   "custom_date_time_format": {
     "title": "Format dată/timp personalizat",
@@ -2012,7 +1923,7 @@
   "book_properties_config": {
     "hide-weekends": "Ascunde weekend-urile",
     "display-week-numbers": "Afișează numărul săptămânii",
-    "map-style": "Stil hartă:",
+    "map-style": "Stil hartă",
     "max-nesting-depth": "Nivel maxim de imbricare:",
     "raster": "Raster",
     "vector_light": "Vectorial (culoare deschisă)",
@@ -2064,12 +1975,15 @@
   },
   "call_to_action": {
     "background_effects_title": "Efectele de fundal sunt acum stabile",
-    "background_effects_message": "Pe dispozitive cu Windows, efectele de fundal sunt complet stabile. Acestea adaugă un strop de culoare interfeței grafice prin estomparea fundalului din spatele ferestrei. Această tehnică este folosită și în alte aplicații precum Windows Explorer.",
+    "background_effects_message": "Pe dispozitive cu Windows și macOS, efectele de fundal sunt stabile. Acestea adaugă un strop de culoare interfeței grafice prin estomparea fundalului din spatele ferestrei.",
     "background_effects_button": "Activează efectele de fundal",
     "next_theme_title": "Încercați noua temă Trilium",
     "next_theme_message": "Utilizați tema clasică, doriți să încercați noua temă?",
     "next_theme_button": "Testează noua temă",
-    "dismiss": "Treci peste"
+    "dismiss": "Treci peste",
+    "new_layout_title": "Aspect nou",
+    "new_layout_message": "Am introdus un aspect modernizat pentru Trilium. Panglică a fost integrată în restul interfeței, cu o bară de stare nouă și secțiuni expandabile (precum atributele promovate) ce preiau funcționalitatea de bază.\n\nNoul aspect este activat în mod implicit, și se poate dezactiva momentan din Opțiuni → Aspect.",
+    "new_layout_button": "Mai multe informații"
   },
   "ui-performance": {
     "title": "Setări de performanță",
@@ -2084,13 +1998,15 @@
   },
   "settings_appearance": {
     "related_code_blocks": "Tema de culori pentru blocuri de cod în notițe de tip text",
-    "related_code_notes": "Tema de culori pentru notițele de tip cod"
+    "related_code_notes": "Tema de culori pentru notițele de tip cod",
+    "ui": "Interfață grafică",
+    "ui_old_layout": "Aspect vechi",
+    "ui_new_layout": "Aspect nou"
   },
   "units": {
     "percentage": "%"
   },
   "pagination": {
-    "page_title": "Pagina pentru {{startIndex}} - {{endIndex}}",
     "total_notes": "{{count}} notițe"
   },
   "collections": {
@@ -2140,6 +2056,136 @@
     "read_only_temporarily_disabled": "Editabilă temporar",
     "read_only_temporarily_disabled_description": "Această notiță se poate modifica, deși în mod normal ea este doar în citire. Notița va reveni la modul doar în citire imediat ce navigați către altă notiță.\n\nClick pentru a re-activa modul doar în citire.",
     "shared_publicly": "Partajată public",
-    "shared_locally": "Partajată local"
+    "shared_locally": "Partajată local",
+    "shared_copy_to_clipboard": "Copiază legătură în clipboard",
+    "shared_open_in_browser": "Deschide legătura în browser",
+    "shared_unshare": "Înlătură partajarea",
+    "clipped_note": "Decupare web",
+    "clipped_note_description": "Această notiță a fost preluată de la {{url}}.\n\nClic pentru a naviga la pagina web sursă.",
+    "execute_script": "Rulează script",
+    "execute_script_description": "Această notiță este un script. Clic pentru a executa scriptul.",
+    "execute_sql": "Rulează SQL",
+    "execute_sql_description": "Această notiță este de tip SQL. Clic pentru a executa interogarea SQL.",
+    "save_status_saved": "Salvat",
+    "save_status_saving": "Se salvează...",
+    "save_status_unsaved": "Nesalvat",
+    "save_status_error": "Salvarea a eșuat",
+    "save_status_saving_tooltip": "Modificările sunt în curs de salvare.",
+    "save_status_unsaved_tooltip": "Există schimbări ce nu au fost încă salvate. Acestea vor fi salvate automat într-un moment.",
+    "save_status_error_tooltip": "A intervenit o eroare la salvarea notiței. Dacă este posibil, încercați să copiați conținutul notiței într-un alt loc și să reîmprospătați aplicația."
+  },
+  "breadcrumb": {
+    "hoisted_badge": "Focalizat",
+    "hoisted_badge_title": "Defocalizează",
+    "workspace_badge": "Spațiu de lucru",
+    "scroll_to_top_title": "Sari la începutul notiței",
+    "create_new_note": "Crează subnotiță",
+    "empty_hide_archived_notes": "Ascunde notițele arhivate"
+  },
+  "status_bar": {
+    "language_title": "Schimbă limba conținutului",
+    "note_info_title": "Afișează informații despre notiță precum data modificării și dimensiunea",
+    "backlinks_one": "{{count}} legătură de retur",
+    "backlinks_few": "{{count}} legături de retur",
+    "backlinks_other": "{{count}} de legături de retur",
+    "backlinks_title_one": "Afișează legătura de retur",
+    "backlinks_title_few": "Afișează legăturile de retur",
+    "backlinks_title_other": "Afișează legăturile de retur",
+    "attachments_one": "{{count}} atașament",
+    "attachments_few": "{{count}} atașamente",
+    "attachments_other": "{{count}} de atașamente",
+    "attachments_title_one": "Deschide atașamentul într-un tab nou",
+    "attachments_title_few": "Deschide atașamentele într-un tab nou",
+    "attachments_title_other": "Deschide atașamentele într-un tab nou",
+    "attributes_one": "{{count}} atribut",
+    "attributes_few": "{{count}} atribute",
+    "attributes_other": "{{count}} de atribute",
+    "attributes_title": "Atribute proprii și moștenite",
+    "note_paths_one": "O cale",
+    "note_paths_few": "{{count}} căi",
+    "note_paths_other": "{{count}} de căi",
+    "note_paths_title": "Căi ale notiței",
+    "code_note_switcher": "Schimbă limbajul"
+  },
+  "attributes_panel": {
+    "title": "Atributele notiței"
+  },
+  "right_pane": {
+    "empty_message": "Nimic de afișat pentru această notiță",
+    "empty_button": "Ascunde panoul",
+    "toggle": "Comută panoul din dreapta",
+    "custom_widget_go_to_source": "Mergi la codul sursă"
+  },
+  "pdf": {
+    "attachments_one": "{{count}} atașament",
+    "attachments_few": "{{count}} atașamente",
+    "attachments_other": "{{count}} de atașamente",
+    "layers_one": "{{count}} strat",
+    "layers_few": "{{count}} straturi",
+    "layers_other": "{{count}} de straturi",
+    "pages_one": "{{count}} pagină",
+    "pages_few": "{{count}} pagini",
+    "pages_other": "{{count}} de pagini",
+    "pages_alt": "Pagina {{pageNumber}}",
+    "pages_loading": "Încărcare..."
+  },
+  "platform_indicator": {
+    "available_on": "Disponibil pe {{platform}}"
+  },
+  "mobile_tab_switcher": {
+    "title_one": "{{count}} tab",
+    "title_few": "{{count}} taburi",
+    "title_other": "{{count}} de taburi",
+    "more_options": "Mai multe opțiuni"
+  },
+  "setup": {
+    "heading": "Începeți cu Trilium",
+    "new-document": "Nouă bază de cunoștințe",
+    "new-document-description": "Începeți cu o bază de cunoștințe curată și începeți imediat.",
+    "sync-from-desktop": "Conectează o aplicație desktop",
+    "sync-from-desktop-description": "Aveți doar o aplicație Trilium desktop rulând pe un alt dispozitiv. Acest dispozitiv va sincroniza datele de la acea aplicație desktop.",
+    "sync-from-server": "Conectează-te la un server existent",
+    "sync-from-server-description": "Aveți un server Trilium care rulează în altă parte (fie auto-găzduit, fie în cloud). Acest dispozitiv va sincroniza datele de la acel server.",
+    "next": "Următorul",
+    "init-in-progress": "Inițializarea documentului în curs",
+    "redirecting": "Veți fi redirecționat în scurt timp către aplicație.",
+    "title": "Configurare",
+    "sync-from-server-page-description": "Introduceți detaliile serverului dvs. mai jos pentru a vă conecta la spațiul de lucru existent.",
+    "sync-in-progress-title": "Sincronizare în curs",
+    "sync-in-progress-description": "Dispozitivul dvs. este acum conectat și elementele sunt sincronizate.",
+    "button-back": "Înapoi",
+    "button-finish-setup": "Finalizează configurarea",
+    "sync-step-connecting": "Conectare la server",
+    "sync-step-syncing": "Sincronizare date",
+    "sync-step-finalizing": "Setarea opțiunilor",
+    "create-new-document-options-title": "Cum doriți să începeți?",
+    "create-new-document-options-with-demo": "Cu conținut demonstrativ",
+    "create-new-document-options-with-demo-description": "Explorează Trilium cu conținut exemplu.",
+    "create-new-document-options-empty": "Gol",
+    "create-new-document-options-empty-description": "Începeți cu o bază de cunoștințe goală. Puteți importa notițe demo mai târziu.",
+    "create-new-document-title": "Pregătirea bazei de cunoștințe",
+    "create-new-document-description": "Acest proces va dura doar câteva momente.",
+    "sync-illustration-this-device": "Acest dispozitiv",
+    "sync-illustration-desktop-app": "Aplicație desktop",
+    "sync-illustration-server": "Server de sincronizare",
+    "sync-from-desktop-step1": "Deschideți aplicația Trilium Notes pentru desktop.",
+    "sync-from-desktop-step2": "Din meniul Trilium, dați clic pe Opțiuni.",
+    "sync-from-desktop-step3": "Clic pe categoria „Sincronizare”.",
+    "sync-from-desktop-step4": "Schimbați adresa server-ului către: {{- host}} și apăsați „Salvează”.",
+    "sync-from-desktop-step5": "Clic pe butonul „Testează sincronizarea” pentru a verifica dacă conexiunea a fost făcută cu succes.",
+    "sync-from-desktop-final": "După ce ați finalizat acești pași, puteți trece la pasul următor.",
+    "sync-from-desktop-waiting": "Așteptare pentru conexiune...",
+    "advanced-options": "Opțiuni avansate",
+    "sync-failed": "Sincronizare eșuată: {{message}}",
+    "server-host": "Adresa serverului Trilium",
+    "server-host-placeholder": "https://<hostname>:<port>",
+    "server-password": "Parolă",
+    "proxy-server": "Server proxy (opțional)",
+    "proxy-server-placeholder": "https://<hostname>:<port>",
+    "proxy-instruction": " Dacă lăsați setarea proxy necompletată, va fi utilizat proxy-ul sistemului.",
+    "dismiss-error": "Închide mesajul de eroare",
+    "wrong-password": "Parolă greșită. Vă rugăm să încercați din nou.",
+    "language": "Limbă",
+    "continue": "Continuă"
   }
 }

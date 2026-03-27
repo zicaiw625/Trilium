@@ -1,11 +1,12 @@
 import { deferred, LOCALES } from "@triliumnext/commons";
+import { becca_loader, i18n } from "@triliumnext/core";
 import { beforeAll, describe, expect, it } from "vitest";
 
 import becca from "../becca/becca.js";
 import branches from "./branches.js";
 import cls from "./cls.js";
 import hiddenSubtreeService from "./hidden_subtree.js";
-import { changeLanguage } from "./i18n.js";
+import notes from "./notes.js";
 import sql_init from "./sql_init.js";
 
 describe("Hidden Subtree", () => {
@@ -114,7 +115,7 @@ describe("Hidden Subtree", () => {
         });
 
         it("maintains launchers hidden, if they were shown by default but moved by the user", () => {
-            const launcher = becca.getNote("_lbLlmChat");
+            const launcher = becca.getNote("_lbCalendar");
             const branch = launcher?.getParentBranches()[0];
             expect(branch).toBeDefined();
             expect(branch!.parentNoteId).toBe("_lbVisibleLaunchers");
@@ -139,7 +140,7 @@ describe("Hidden Subtree", () => {
                     }
 
                     try {
-                        await changeLanguage(locale.id);
+                        await i18n.changeLanguage(locale.id);
                     } catch (error) {
                         done.reject(error);
                     }
@@ -157,6 +158,49 @@ describe("Hidden Subtree", () => {
             expect(hiddenSubtree.hasLabel("excludeFromNoteMap")).toBeTruthy();
             cls.init(() => hiddenSubtreeService.checkHiddenSubtree());
             expect(hiddenSubtree.hasLabel("excludeFromNoteMap")).toBeFalsy();
+        });
+
+        it("cleans up attribute change in templates", () => {
+            const template = becca.getNoteOrThrow("_template_table");
+            cls.init(() => {
+                template.setLabel("subtreeHidden", "foo");
+                hiddenSubtreeService.checkHiddenSubtree();
+            });
+            expect(template.getLabelValue("subtreeHidden")).toBe("false");
+        });
+
+        it("cleans up item to be deleted", async () => {
+            const noteId = "_lbLlmChat";
+            let llmNote = becca.getNote(noteId);
+
+            cls.init(() => {
+                if (!llmNote) {
+                    llmNote = notes.createNewNote({
+                        parentNoteId: "_lbVisibleLaunchers",
+                        noteId,
+                        title: "LLM chat",
+                        type: "launcher",
+                        content: ""
+                    }).note;
+                }
+
+                hiddenSubtreeService.checkHiddenSubtree();
+                becca_loader.reload("test");
+            });
+
+            llmNote = becca.getNote(noteId);
+            expect(llmNote).toBeFalsy();
+        });
+
+        it("fixes attribute of wrong type", () => {
+            const template = becca.getNoteOrThrow("_template_table");
+            cls.init(() => {
+                template.setAttribute("relation", "template", "root");
+                hiddenSubtreeService.checkHiddenSubtree();
+            });
+            const attr = template.getAttributes().find(a => a.name === "template");
+            expect(attr).toBeDefined();
+            expect(attr?.type).toBe("label");
         });
     });
 });

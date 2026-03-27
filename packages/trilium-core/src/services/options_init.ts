@@ -1,13 +1,14 @@
 import { type KeyboardShortcutWithRequiredActionName, type OptionMap, type OptionNames, SANITIZER_DEFAULT_ALLOWED_TAGS } from "@triliumnext/commons";
 
 import appInfo from "./app_info.js";
+import { getPlatform } from "./platform.js";
 import dateUtils from "./utils/date.js";
 import keyboardActions from "./keyboard_actions.js";
 import { getLog } from "./log.js";
 import optionService from "./options.js";
 import { isWindows, randomSecureToken } from "./utils/index.js";
 
-function initDocumentOptions() {
+export function initDocumentOptions() {
     optionService.createOption("documentId", randomSecureToken(16), false);
     optionService.createOption("documentSecret", randomSecureToken(16), false);
 }
@@ -28,7 +29,7 @@ interface DefaultOption {
     /**
      * The value to initialize the option with, if the option is not already present in the database.
      *
-     * If a function is passed in instead, the function is called if the option does not exist (with access to the current options) and the return value is used instead. Useful to migrate a new option with a value depending on some other option that might be initialized.
+     * If a function is passed Gin instead, the function is called if the option does not exist (with access to the current options) and the return value is used instead. Useful to migrate a new option with a value depending on some other option that might be initialized.
      */
     value: string | ((options: OptionMap) => string);
     isSynced: boolean;
@@ -40,7 +41,7 @@ interface DefaultOption {
  * @param initialized `true` if the database has been fully initialized (i.e. a new database was created), or `false` if the database is created for sync.
  * @param opts additional options to be initialized, for example the sync configuration.
  */
-async function initNotSyncedOptions(initialized: boolean, opts: NotSyncedOpts = {}) {
+export async function initNotSyncedOptions(initialized: boolean, opts: NotSyncedOpts = {}) {
     optionService.createOption(
         "openNoteContexts",
         JSON.stringify([
@@ -79,7 +80,7 @@ const defaultOptions: DefaultOption[] = [
     { name: "revisionSnapshotNumberLimit", value: "-1", isSynced: true },
     { name: "protectedSessionTimeout", value: "600", isSynced: true },
     { name: "protectedSessionTimeoutTimeScale", value: "60", isSynced: true },
-    { name: "zoomFactor", value: isWindows ? "0.9" : "1.0", isSynced: false },
+    { name: "zoomFactor", value: () => isWindows() ? "0.9" : "1.0", isSynced: false },
     { name: "overrideThemeFonts", value: "false", isSynced: false },
     { name: "mainFontFamily", value: "theme", isSynced: false },
     { name: "mainFontSize", value: "100", isSynced: false },
@@ -202,22 +203,6 @@ const defaultOptions: DefaultOption[] = [
     { name: "redirectBareDomain", value: "false", isSynced: true },
     { name: "showLoginInShareTheme", value: "false", isSynced: true },
 
-    // AI Options
-    { name: "aiEnabled", value: "false", isSynced: true },
-    { name: "openaiApiKey", value: "", isSynced: false },
-    { name: "openaiDefaultModel", value: "", isSynced: true },
-    { name: "openaiBaseUrl", value: "https://api.openai.com/v1", isSynced: true },
-    { name: "anthropicApiKey", value: "", isSynced: false },
-    { name: "anthropicDefaultModel", value: "", isSynced: true },
-    { name: "voyageApiKey", value: "", isSynced: false },
-    { name: "anthropicBaseUrl", value: "https://api.anthropic.com/v1", isSynced: true },
-    { name: "ollamaEnabled", value: "false", isSynced: true },
-    { name: "ollamaDefaultModel", value: "", isSynced: true },
-    { name: "ollamaBaseUrl", value: "http://localhost:11434", isSynced: true },
-    { name: "aiTemperature", value: "0.7", isSynced: true },
-    { name: "aiSystemPrompt", value: "", isSynced: true },
-    { name: "aiSelectedProvider", value: "openai", isSynced: true },
-
     {
         name: "seenCallToActions",
         value: JSON.stringify([
@@ -233,7 +218,7 @@ const defaultOptions: DefaultOption[] = [
  *
  * This method is called regardless of whether a new database is created, or an existing database is used.
  */
-function initStartupOptions() {
+export function initStartupOptions() {
     const optionsMap = optionService.getOptionMap();
 
     const allDefaultOptions = defaultOptions.concat(getKeyboardDefaultOptions());
@@ -253,12 +238,12 @@ function initStartupOptions() {
         }
     }
 
-    if (process.env.TRILIUM_START_NOTE_ID || process.env.TRILIUM_SAFE_MODE) {
+    if (getPlatform().getEnv("TRILIUM_START_NOTE_ID") || getPlatform().getEnv("TRILIUM_SAFE_MODE")) {
         optionService.setOption(
             "openNoteContexts",
             JSON.stringify([
                 {
-                    notePath: process.env.TRILIUM_START_NOTE_ID || "root",
+                    notePath: getPlatform().getEnv("TRILIUM_START_NOTE_ID") || "root",
                     active: true
                 }
             ])
@@ -274,8 +259,3 @@ function getKeyboardDefaultOptions() {
     })) as DefaultOption[];
 }
 
-export default {
-    initDocumentOptions,
-    initNotSyncedOptions,
-    initStartupOptions
-};

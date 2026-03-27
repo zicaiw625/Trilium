@@ -1,10 +1,15 @@
+import LocalServerWorker from "./local-server-worker?worker";
 let localWorker: Worker | null = null;
 const pending = new Map();
 
+function showFatalErrorDialog(message: string) {
+    alert(message);
+}
+
 export function startLocalServerWorker() {
     if (localWorker) return localWorker;
-
-    localWorker = new Worker(new URL("./local-server-worker.js", import.meta.url), { type: "module" });
+    localWorker = new LocalServerWorker();
+    localWorker.postMessage({ type: "INIT", queryString: location.search });
 
     // Handle worker errors during initialization
     localWorker.onerror = (event) => {
@@ -19,6 +24,13 @@ export function startLocalServerWorker() {
     localWorker.onmessage = (event) => {
         const msg = event.data;
 
+        // Handle fatal platform crashes (shown as a dialog to the user)
+        if (msg?.type === "FATAL_ERROR") {
+            console.error("[LocalBridge] Fatal error:", msg.message);
+            showFatalErrorDialog(msg.message);
+            return;
+        }
+
         // Handle worker error reports
         if (msg?.type === "WORKER_ERROR") {
             console.error("[LocalBridge] Worker reported error:", msg.error);
@@ -27,6 +39,15 @@ export function startLocalServerWorker() {
                 resolver.reject(new Error(msg.error?.message || "Unknown worker error"));
             }
             pending.clear();
+            return;
+        }
+
+        // Handle WebSocket-like messages from the worker (for frontend updates)
+        if (msg?.type === "WS_MESSAGE" && msg.message) {
+            // Dispatch a custom event that ws.ts listens to in standalone mode
+            window.dispatchEvent(new CustomEvent("trilium:ws-message", {
+                detail: msg.message
+            }));
             return;
         }
 
@@ -58,10 +79,10 @@ export function attachServiceWorkerBridge() {
             const id = msg.id;
             const req = msg.request;
 
-            const response = await new Promise((resolve, reject) => {
+            const response = await new Promise<{ body?: ArrayBuffer }>((resolve, reject) => {
                 pending.set(id, { resolve, reject });
                 // Transfer body to worker for efficiency (if present)
-                localWorker.postMessage({
+                localWorker!.postMessage({
                     type: "LOCAL_REQUEST",
                     id,
                     request: req
@@ -73,14 +94,15 @@ export function attachServiceWorkerBridge() {
                 id,
                 response
             }, response.body ? [response.body] : []);
-        } catch (e) {
+        } catch (e: unknown) {
+            const errorMessage = e instanceof Error ? e.message : String(e);
             port.postMessage({
                 type: "LOCAL_FETCH_RESPONSE",
                 id: msg.id,
                 response: {
                     status: 500,
                     headers: { "content-type": "text/plain; charset=utf-8" },
-                    body: new TextEncoder().encode(String(e?.message || e)).buffer
+                    body: new TextEncoder().encode(errorMessage).buffer
                 }
             });
         }

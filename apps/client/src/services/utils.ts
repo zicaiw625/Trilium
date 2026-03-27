@@ -14,7 +14,9 @@ export function reloadFrontendApp(reason?: string) {
     }
 
     if (isElectron()) {
-        dynamicRequire("@electron/remote").BrowserWindow.getFocusedWindow()?.reload();
+        for (const window of dynamicRequire("@electron/remote").BrowserWindow.getAllWindows()) {
+            window.reload();
+        }
     } else {
         window.location.reload();
     }
@@ -901,6 +903,10 @@ export function getErrorMessage(e: unknown) {
     }
     return "Unknown error";
 
+}
+
+export function replaceHtmlEscapedSlashes(str: string) {
+    return str.replace(/&#x2F;/g, "/");
 }
 
 /**

@@ -11,47 +11,28 @@ import etapiBackupRoute from "../etapi/backup.js";
 import etapiBranchRoutes from "../etapi/branches.js";
 import etapiMetricsRoute from "../etapi/metrics.js";
 import etapiNoteRoutes from "../etapi/notes.js";
+import etapiRevisionsRoutes from "../etapi/revisions.js";
 import etapiSpecRoute from "../etapi/spec.js";
 import etapiSpecialNoteRoutes from "../etapi/special_notes.js";
 import auth from "../services/auth.js";
 import openID from '../services/open_id.js';
 import { isElectron } from "../services/utils.js";
 import shareRoutes from "../share/routes.js";
-import anthropicRoute from "./api/anthropic.js";
-import attributesRoute from "./api/attributes.js";
-import autocompleteApiRoute from "./api/autocomplete.js";
 import backendLogRoute from "./api/backend_log.js";
-import bulkActionRoute from "./api/bulk_action.js";
 import clipperRoute from "./api/clipper.js";
-import cloningApiRoute from "./api/cloning.js";
 import databaseRoute from "./api/database.js";
 import etapiTokensApiRoutes from "./api/etapi_tokens.js";
 import exportRoute from "./api/export.js";
 import filesRoute from "./api/files.js";
 import fontsRoute from "./api/fonts.js";
-import imageRoute from "./api/image.js";
 import importRoute from "./api/import.js";
-import llmRoute from "./api/llm.js";
 import loginApiRoute from "./api/login.js";
 import metricsRoute from "./api/metrics.js";
-import noteMapRoute from "./api/note_map.js";
-import ollamaRoute from "./api/ollama.js";
-import openaiRoute from "./api/openai.js";
 import otherRoute from "./api/other.js";
 import passwordApiRoute from "./api/password.js";
-import recentChangesApiRoute from "./api/recent_changes.js";
 import recoveryCodes from './api/recovery_codes.js';
-import relationMapApiRoute from "./api/relation-map.js";
-import revisionsApiRoute from "./api/revisions.js";
 import scriptRoute from "./api/script.js";
-import searchRoute from "./api/search.js";
 import senderRoute from "./api/sender.js";
-import setupApiRoute from "./api/setup.js";
-import similarNotesRoute from "./api/similar_notes.js";
-import specialNotesRoute from "./api/special_notes.js";
-import sqlRoute from "./api/sql.js";
-import statsRoute from "./api/stats.js";
-import syncApiRoute from "./api/sync.js";
 import systemInfoRoute from "./api/system_info.js";
 import totp from './api/totp.js';
 // API routes
@@ -98,14 +79,20 @@ function register(app: express.Application) {
     apiRoute(GET, '/api/totp_recovery/enabled', recoveryCodes.checkForRecoveryKeys);
     apiRoute(GET, '/api/totp_recovery/used', recoveryCodes.getUsedRecoveryCodes);
 
-    routes.buildSharedApiRoutes(apiRoute);
+    routes.buildSharedApiRoutes({
+        route,
+        asyncRoute,
+        apiRoute,
+        asyncApiRoute,
+        apiResultHandler,
+        checkApiAuth: auth.checkApiAuth,
+        checkApiAuthOrElectron: auth.checkApiAuthOrElectron,
+        checkAppNotInitialized: auth.checkAppNotInitialized,
+        checkCredentials: auth.checkCredentials,
+        loginRateLimiter
+    });
 
-    apiRoute(PUT, "/api/notes/:noteId/clone-to-branch/:parentBranchId", cloningApiRoute.cloneNoteToBranch);
-    apiRoute(PUT, "/api/notes/:noteId/toggle-in-parent/:parentNoteId/:present", cloningApiRoute.toggleNoteInParent);
-    apiRoute(PUT, "/api/notes/:noteId/clone-to-note/:parentNoteId", cloningApiRoute.cloneNoteToParentNote);
-    apiRoute(PUT, "/api/notes/:noteId/clone-after/:afterBranchId", cloningApiRoute.cloneNoteAfter);
     route(PUT, "/api/notes/:noteId/file", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], filesRoute.updateFile, apiResultHandler);
-    route(GET, "/api/notes/:noteId/open", [auth.checkApiAuthOrElectron], filesRoute.openFile);
     asyncRoute(
         GET,
         "/api/notes/:noteId/open-partial",
@@ -116,16 +103,11 @@ function register(app: express.Application) {
             }
         })
     );
-    route(GET, "/api/notes/:noteId/download", [auth.checkApiAuthOrElectron], filesRoute.downloadFile);
-    // this "hacky" path is used for easier referencing of CSS resources
-    route(GET, "/api/notes/download/:noteId", [auth.checkApiAuthOrElectron], filesRoute.downloadFile);
     apiRoute(PST, "/api/notes/:noteId/save-to-tmp-dir", filesRoute.saveNoteToTmpDir);
     apiRoute(PST, "/api/notes/:noteId/upload-modified-file", filesRoute.uploadModifiedFileToNote);
 
     // TODO: Bring back attachment uploading
     // route(PST, "/api/notes/:noteId/attachments/upload", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], attachmentsApiRoute.uploadAttachment, apiResultHandler);
-    route(GET, "/api/attachments/:attachmentId/image/:filename", [auth.checkApiAuthOrElectron], imageRoute.returnAttachedImage);
-    route(GET, "/api/attachments/:attachmentId/open", [auth.checkApiAuthOrElectron], filesRoute.openAttachment);
     asyncRoute(
         GET,
         "/api/attachments/:attachmentId/open-partial",
@@ -136,82 +118,31 @@ function register(app: express.Application) {
             }
         })
     );
-    route(GET, "/api/attachments/:attachmentId/download", [auth.checkApiAuthOrElectron], filesRoute.downloadAttachment);
-    // this "hacky" path is used for easier referencing of CSS resources
-    route(GET, "/api/attachments/download/:attachmentId", [auth.checkApiAuthOrElectron], filesRoute.downloadAttachment);
+
     apiRoute(PST, "/api/attachments/:attachmentId/save-to-tmp-dir", filesRoute.saveAttachmentToTmpDir);
     apiRoute(PST, "/api/attachments/:attachmentId/upload-modified-file", filesRoute.uploadModifiedFileToAttachment);
     route(PUT, "/api/attachments/:attachmentId/file", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], filesRoute.updateAttachment, apiResultHandler);
 
-    apiRoute(GET, "/api/notes/:noteId/revisions", revisionsApiRoute.getRevisions);
-    apiRoute(DEL, "/api/notes/:noteId/revisions", revisionsApiRoute.eraseAllRevisions);
-    apiRoute(PST, "/api/revisions/erase-all-excess-revisions", revisionsApiRoute.eraseAllExcessRevisions);
-    apiRoute(GET, "/api/revisions/:revisionId", revisionsApiRoute.getRevision);
-    apiRoute(GET, "/api/revisions/:revisionId/blob", revisionsApiRoute.getRevisionBlob);
-    apiRoute(DEL, "/api/revisions/:revisionId", revisionsApiRoute.eraseRevision);
-    apiRoute(PST, "/api/revisions/:revisionId/restore", revisionsApiRoute.restoreRevision);
-    route(GET, "/api/revisions/:revisionId/image/:filename", [auth.checkApiAuthOrElectron], imageRoute.returnImageFromRevision);
+    // TODO: Re-enable once ported to core.
+    // route(PUT, "/api/images/:noteId", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], imageRoute.updateImage, apiResultHandler);
 
-    route(GET, "/api/revisions/:revisionId/download", [auth.checkApiAuthOrElectron], revisionsApiRoute.downloadRevision);
+    // TODO: Re-enable once we support route()
+    // route(GET, "/api/revisions/:revisionId/download", [auth.checkApiAuthOrElectron], revisionsApiRoute.downloadRevision);
 
     route(GET, "/api/branches/:branchId/export/:type/:format/:version/:taskId", [auth.checkApiAuthOrElectron], exportRoute.exportBranch);
     asyncRoute(PST, "/api/notes/:parentNoteId/notes-import", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], importRoute.importNotesToBranch, apiResultHandler);
     route(PST, "/api/notes/:parentNoteId/attachments-import", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], importRoute.importAttachmentsToNote, apiResultHandler);
 
-    apiRoute(GET, "/api/notes/:noteId/attributes", attributesRoute.getEffectiveNoteAttributes);
-    apiRoute(PST, "/api/notes/:noteId/attributes", attributesRoute.addNoteAttribute);
-    apiRoute(PUT, "/api/notes/:noteId/attributes", attributesRoute.updateNoteAttributes);
-    apiRoute(PUT, "/api/notes/:noteId/attribute", attributesRoute.updateNoteAttribute);
-    apiRoute(PUT, "/api/notes/:noteId/set-attribute", attributesRoute.setNoteAttribute);
-    apiRoute(PUT, "/api/notes/:noteId/relations/:name/to/:targetNoteId", attributesRoute.createRelation);
-    apiRoute(DEL, "/api/notes/:noteId/relations/:name/to/:targetNoteId", attributesRoute.deleteRelation);
-    apiRoute(DEL, "/api/notes/:noteId/attributes/:attributeId", attributesRoute.deleteNoteAttribute);
-    apiRoute(GET, "/api/attribute-names", attributesRoute.getAttributeNames);
-    apiRoute(GET, "/api/attribute-values/:attributeName", attributesRoute.getValuesForAttribute);
-
     // :filename is not used by trilium, but instead used for "save as" to assign a human-readable filename
-    route(GET, "/api/images/:noteId/:filename", [auth.checkApiAuthOrElectron], imageRoute.returnImageFromNote);
-    route(PUT, "/api/images/:noteId", [auth.checkApiAuthOrElectron, uploadMiddlewareWithErrorHandling, csrfMiddleware], imageRoute.updateImage, apiResultHandler);
 
     apiRoute(PST, "/api/password/change", passwordApiRoute.changePassword);
     apiRoute(PST, "/api/password/reset", passwordApiRoute.resetPassword);
-
-    asyncApiRoute(PST, "/api/sync/test", syncApiRoute.testSync);
-    asyncApiRoute(PST, "/api/sync/now", syncApiRoute.syncNow);
-    apiRoute(PST, "/api/sync/fill-entity-changes", syncApiRoute.fillEntityChanges);
-    apiRoute(PST, "/api/sync/force-full-sync", syncApiRoute.forceFullSync);
-    route(GET, "/api/sync/check", [auth.checkApiAuth], syncApiRoute.checkSync, apiResultHandler);
-    route(GET, "/api/sync/changed", [auth.checkApiAuth], syncApiRoute.getChanged, apiResultHandler);
-    route(PUT, "/api/sync/update", [auth.checkApiAuth], syncApiRoute.update, apiResultHandler);
-    route(PST, "/api/sync/finished", [auth.checkApiAuth], syncApiRoute.syncFinished, apiResultHandler);
-    route(PST, "/api/sync/check-entity-changes", [auth.checkApiAuth], syncApiRoute.checkEntityChanges, apiResultHandler);
-    route(PST, "/api/sync/queue-sector/:entityName/:sector", [auth.checkApiAuth], syncApiRoute.queueSector, apiResultHandler);
-    route(GET, "/api/sync/stats", [], syncApiRoute.getStats, apiResultHandler);
 
     apiRoute(GET, "/api/metrics", metricsRoute.getMetrics);
     apiRoute(GET, "/api/system-checks", systemInfoRoute.systemChecks);
 
     // docker health check
     route(GET, "/api/health-check", [], () => ({ status: "ok" }), apiResultHandler);
-
-    // group of the services below are meant to be executed from the outside
-    route(GET, "/api/setup/status", [], setupApiRoute.getStatus, apiResultHandler);
-    asyncRoute(PST, "/api/setup/new-document", [auth.checkAppNotInitialized], setupApiRoute.setupNewDocument, apiResultHandler);
-    asyncRoute(PST, "/api/setup/sync-from-server", [auth.checkAppNotInitialized], setupApiRoute.setupSyncFromServer, apiResultHandler);
-    route(GET, "/api/setup/sync-seed", [loginRateLimiter, auth.checkCredentials], setupApiRoute.getSyncSeed, apiResultHandler);
-    asyncRoute(PST, "/api/setup/sync-seed", [auth.checkAppNotInitialized], setupApiRoute.saveSyncSeed, apiResultHandler);
-
-    apiRoute(GET, "/api/autocomplete", autocompleteApiRoute.getAutocomplete);
-    apiRoute(GET, "/api/autocomplete/notesCount", autocompleteApiRoute.getNotesCount);
-    apiRoute(GET, "/api/quick-search/:searchString", searchRoute.quickSearch);
-    apiRoute(GET, "/api/search-note/:noteId", searchRoute.searchFromNote);
-    apiRoute(PST, "/api/search-and-execute-note/:noteId", searchRoute.searchAndExecute);
-    apiRoute(PST, "/api/search-related", searchRoute.getRelatedNotes);
-    apiRoute(GET, "/api/search/:searchString", searchRoute.search);
-    apiRoute(GET, "/api/search-templates", searchRoute.searchTemplates);
-
-    apiRoute(PST, "/api/bulk-action/execute", bulkActionRoute.execute);
-    apiRoute(PST, "/api/bulk-action/affected-notes", bulkActionRoute.getAffectedNoteCount);
 
     route(PST, "/api/login/sync", [loginRateLimiter], loginApiRoute.loginSync, apiResultHandler);
     // this is for entering protected mode so user has to be already logged-in (that's the reason we don't require username)
@@ -235,24 +166,6 @@ function register(app: express.Application) {
     route(PST, "/api/clipper/open/:noteId", clipperMiddleware, clipperRoute.openNote, apiResultHandler);
     asyncRoute(GET, "/api/clipper/notes-by-url/:noteUrl", clipperMiddleware, clipperRoute.findNotesByUrl, apiResultHandler);
 
-    asyncApiRoute(GET, "/api/special-notes/inbox/:date", specialNotesRoute.getInboxNote);
-    asyncApiRoute(GET, "/api/special-notes/days/:date", specialNotesRoute.getDayNote);
-    asyncApiRoute(GET, "/api/special-notes/week-first-day/:date", specialNotesRoute.getWeekFirstDayNote);
-    asyncApiRoute(GET, "/api/special-notes/weeks/:week", specialNotesRoute.getWeekNote);
-    asyncApiRoute(GET, "/api/special-notes/months/:month", specialNotesRoute.getMonthNote);
-    asyncApiRoute(GET, "/api/special-notes/quarters/:quarter", specialNotesRoute.getQuarterNote);
-    apiRoute(GET, "/api/special-notes/years/:year", specialNotesRoute.getYearNote);
-    apiRoute(GET, "/api/special-notes/notes-for-month/:month", specialNotesRoute.getDayNotesForMonth);
-    apiRoute(PST, "/api/special-notes/sql-console", specialNotesRoute.createSqlConsole);
-    asyncApiRoute(PST, "/api/special-notes/save-sql-console", specialNotesRoute.saveSqlConsole);
-    apiRoute(PST, "/api/special-notes/search-note", specialNotesRoute.createSearchNote);
-    apiRoute(PST, "/api/special-notes/save-search-note", specialNotesRoute.saveSearchNote);
-    apiRoute(PST, "/api/special-notes/launchers/:noteId/reset", specialNotesRoute.resetLauncher);
-    apiRoute(PST, "/api/special-notes/launchers/:parentNoteId/:launcherType", specialNotesRoute.createLauncher);
-    apiRoute(PUT, "/api/special-notes/api-script-launcher", specialNotesRoute.createOrUpdateScriptLauncherFromApi);
-
-    apiRoute(GET, "/api/sql/schema", sqlRoute.getSchema);
-    apiRoute(PST, "/api/sql/execute/:noteId", sqlRoute.execute);
     asyncRoute(PST, "/api/database/anonymize/:type", [auth.checkApiAuthOrElectron, csrfMiddleware], databaseRoute.anonymize, apiResultHandler);
     apiRoute(GET, "/api/database/anonymized-databases", databaseRoute.getExistingAnonymizedDatabases);
 
@@ -284,20 +197,10 @@ function register(app: express.Application) {
     asyncRoute(PST, "/api/sender/image", [auth.checkEtapiToken, uploadMiddlewareWithErrorHandling], senderRoute.uploadImage, apiResultHandler);
     asyncRoute(PST, "/api/sender/note", [auth.checkEtapiToken], senderRoute.saveNote, apiResultHandler);
 
-    apiRoute(PST, "/api/relation-map", relationMapApiRoute.getRelationMap);
-    asyncApiRoute(GET, "/api/similar-notes/:noteId", similarNotesRoute.getSimilarNotes);
     asyncApiRoute(GET, "/api/backend-log", backendLogRoute.getBackendLog);
-    apiRoute(GET, "/api/stats/note-size/:noteId", statsRoute.getNoteSize);
-    apiRoute(GET, "/api/stats/subtree-size/:noteId", statsRoute.getSubtreeSize);
     route(GET, "/api/fonts", [auth.checkApiAuthOrElectron], fontsRoute.getFontCss);
     apiRoute(PST, "/api/other/render-markdown", otherRoute.renderMarkdown);
     apiRoute(PST, "/api/other/to-markdown", otherRoute.toMarkdown);
-    apiRoute(GET, "/api/recent-changes/:ancestorNoteId", recentChangesApiRoute.getRecentChanges);
-    apiRoute(GET, "/api/edited-notes/:date", revisionsApiRoute.getEditedNotesOnDate);
-
-    apiRoute(PST, "/api/note-map/:noteId/tree", noteMapRoute.getTreeMap);
-    apiRoute(PST, "/api/note-map/:noteId/link", noteMapRoute.getLinkMap);
-    apiRoute(GET, "/api/note-map/:noteId/backlinks", noteMapRoute.getBacklinks);
 
     shareRoutes.register(router);
 
@@ -306,25 +209,13 @@ function register(app: express.Application) {
     etapiAttachmentRoutes.register(router);
     etapiAttributeRoutes.register(router);
     etapiBranchRoutes.register(router);
+    // Register revisions routes BEFORE notes routes so /etapi/notes/history is matched before /etapi/notes/:noteId
+    etapiRevisionsRoutes.register(router);
     etapiNoteRoutes.register(router);
     etapiSpecialNoteRoutes.register(router);
     etapiSpecRoute.register(router);
     etapiBackupRoute.register(router);
     etapiMetricsRoute.register(router);
-
-    // LLM Chat API
-    asyncApiRoute(PST, "/api/llm/chat", llmRoute.createSession);
-    asyncApiRoute(GET, "/api/llm/chat", llmRoute.listSessions);
-    asyncApiRoute(GET, "/api/llm/chat/:sessionId", llmRoute.getSession);
-    asyncApiRoute(PATCH, "/api/llm/chat/:sessionId", llmRoute.updateSession);
-    asyncApiRoute(DEL, "/api/llm/chat/:chatNoteId", llmRoute.deleteSession);
-    asyncApiRoute(PST, "/api/llm/chat/:chatNoteId/messages", llmRoute.sendMessage);
-    asyncApiRoute(PST, "/api/llm/chat/:chatNoteId/messages/stream", llmRoute.streamMessage);
-
-    // LLM provider endpoints - moved under /api/llm/providers hierarchy
-    asyncApiRoute(GET, "/api/llm/providers/ollama/models", ollamaRoute.listModels);
-    asyncApiRoute(GET, "/api/llm/providers/openai/models", openaiRoute.listModels);
-    asyncApiRoute(GET, "/api/llm/providers/anthropic/models", anthropicRoute.listModels);
 
     app.use("", router);
 }

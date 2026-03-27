@@ -1232,7 +1232,9 @@ export default class NoteTreeWidget extends NoteContextAwareWidget {
             refreshCtx.noteIdsToUpdate.add(noteId);
         }
 
-        if (refreshCtx.noteIdsToUpdate.size + refreshCtx.noteIdsToReload.size > 0) {
+        const hasNotesToUpdateOrReload = refreshCtx.noteIdsToUpdate.size + refreshCtx.noteIdsToReload.size > 0;
+        const hasNoteReorderingChange = loadResults.getNoteReorderings().length > 0;
+        if (hasNotesToUpdateOrReload || hasNoteReorderingChange) {
             await this.#executeTreeUpdates(refreshCtx, loadResults);
         }
 
@@ -1393,6 +1395,7 @@ export default class NoteTreeWidget extends NoteContextAwareWidget {
 
             for (const parentNoteId of loadResults.getNoteReorderings()) {
                 for (const node of this.getNodesByNoteId(parentNoteId)) {
+                    console.log("Reordering ", node);
                     if (node.isLoaded()) {
                         this.sortChildren(node);
                     }
@@ -1989,7 +1992,7 @@ function buildEnhanceTitle() {
         if (isSubtreeHidden && count > 0) {
             const $badge = $(`<span class="note-indicator-icon subtree-hidden-badge">${count}</span>`);
             $badge.attr("title", t("note_tree.subtree-hidden-tooltip", { count }));
-            $span.find(".fancytree-title").append($badge);
+            $span.append($badge);
         }
     };
 }

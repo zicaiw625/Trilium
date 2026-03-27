@@ -35,7 +35,7 @@ wiedzy.
 
 <img src="./app.png" alt="Trilium Screenshot" width="1000">
 
-## ⏬ Pobierz
+## ⏬ Pobieranie
 - [Ostatnie wydanie](https://github.com/TriliumNext/Trilium/releases/latest) –
   stabilna wersja, polecane dla większości użytkowników.
 - [Nightly build](https://github.com/TriliumNext/Trilium/releases/tag/nightly) -
@@ -48,7 +48,7 @@ wiedzy.
 [docs.triliumnotes.org](https://docs.triliumnotes.org/)**
 
 Nasza dokumentacja jest dostępna w wielu formatach:
-- **Dokumentacja Online**: Pełna dokumentacja dostępna pod
+- **Dokumentacja online**: Przeglądaj pełną dokumentację pod linkiem
   [docs.triliumnotes.org](https://docs.triliumnotes.org/)
 - **Pomoc w aplikacji**: Naciśnij `F1` w Trilium, aby uzyskać dostęp do tej
   samej dokumentacji bezpośrednio w aplikacji
@@ -64,15 +64,15 @@ Nasza dokumentacja jest dostępna w wielu formatach:
   TriliumNext](https://docs.triliumnotes.org/user-guide/setup/upgrading)
 - [Podstawowe koncepcje i
   funkcjonalność](https://docs.triliumnotes.org/user-guide/concepts/notes)
-- [Wzorce Bazy Wiedzy
-  Osobistej](https://docs.triliumnotes.org/user-guide/misc/patterns-of-personal-knowledge)
+- [Wzorce osobistej Bazy
+  Wiedzy](https://docs.triliumnotes.org/user-guide/misc/patterns-of-personal-knowledge)
 
 ## 🎁 Funkcjonalność
 
 * Notatki mogą być zorganizowane w drzewa dowolnej głębokości. Pojedyncza
   notatka może być umieszczona w wielu miejscach w drzewie (patrz
   [klonowanie](https://docs.triliumnotes.org/user-guide/concepts/notes/cloning))
-* Bogaty edytor notatek WYSIWYG, zawierający np. tabele, obrazy i
+* Bogato wyposażony edytor notatek WYSIWYG, zawierający np. tabele, obrazy i
   [matematykę](https://docs.triliumnotes.org/user-guide/note-types/text) z
   [autoformat](https://docs.triliumnotes.org/user-guide/note-types/text/markdown-formatting)
   Markdown
@@ -83,7 +83,7 @@ Nasza dokumentacja jest dostępna w wielu formatach:
   notatkach](https://docs.triliumnotes.org/user-guide/concepts/navigation/note-navigation),
   wyszukiwanie po pełnym tekście i[wyróżnienie
   notatki](https://docs.triliumnotes.org/user-guide/concepts/navigation/note-hoisting)
-* Płynne [aktualizowanie wersji
+* Bezproblemowe [aktualizowanie wersji
   notatki](https://docs.triliumnotes.org/user-guide/concepts/notes/note-revisions)
 * [Atrybuty](https://docs.triliumnotes.org/user-guide/advanced-usage/attributes)
   notatki mogą być użyte dla jej organizacji, wyszukiwania i użycia
@@ -113,7 +113,7 @@ Nasza dokumentacja jest dostępna w wielu formatach:
 * [Mapy
   geograficzne](https://docs.triliumnotes.org/user-guide/collections/geomap) z
   oznaczeniami lokalizacji i trasami GPX
-* [Skryptowanie](https://docs.triliumnotes.org/user-guide/scripts) – patrz
+* [Skrypty](https://docs.triliumnotes.org/user-guide/scripts) – patrz
   [zaawansowane
   przykłady](https://docs.triliumnotes.org/user-guide/advanced-usage/advanced-showcases)
 * [REST API](https://docs.triliumnotes.org/user-guide/advanced-usage/etapi) do
@@ -209,7 +209,7 @@ interfejsu webowego, niemal identycznego z aplikacją desktopową.
 
 Aktualnie wspierane i testowane są tylko najnowsze wersje Chrome i Firefox.
 
-### Mobile
+### Urządzenia mobilne
 
 Aby korzystać z TriliumNext na urządzeniu mobilnym, możesz użyć mobilnej
 przeglądarki internetowej, aby uzyskać dostęp do mobilnego interfejsu instalacji
@@ -295,9 +295,8 @@ W razie dodatkowych pytań możesz skorzystać z linków podanych w sekcji
   implementację aplikacji.
 * [Sarah Hussein](https://github.com/Sarah-Hussein) za zaprojektowanie ikony
   aplikacji.
-* [nriver](https://github.com/nriver) za prace nad internacjonalizacją.
-* [Thomas Frei](https://github.com/thfrei) za pierwotne prace nad Płótnem (
-  Canvas ).
+* [nriver](https://github.com/nriver) za prace nad wersjami językowymi.
+* [Thomas Frei](https://github.com/thfrei) za pierwotne prace nad Canvas.
 * [antoniotejada](https://github.com/nriver) za pierwotny widżet podświetlania
   składni.
 * [Dosu](https://dosu.dev/) za stworzenie rozwiązania umożliwiającego

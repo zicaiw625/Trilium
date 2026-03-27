@@ -1,6 +1,6 @@
 import type { CKTextEditor } from "@triliumnext/ckeditor5";
 import type CodeMirror from "@triliumnext/codemirror";
-import { SqlExecuteResults } from "@triliumnext/commons";
+import { SqlExecuteResponse } from "@triliumnext/commons";
 import type { NativeImage, TouchBar } from "electron";
 import { ColumnComponent } from "tabulator-tables";
 
@@ -101,8 +101,6 @@ export type CommandMappings = {
     showRevisions: CommandData & {
         noteId?: string | null;
     };
-    showLlmChat: CommandData;
-    createAiChat: CommandData;
     showOptions: CommandData & {
         section: string;
     };
@@ -410,7 +408,7 @@ type EventMappings = {
     addNewLabel: CommandData;
     addNewRelation: CommandData;
     sqlQueryResults: CommandData & {
-        results: SqlExecuteResults;
+        response: SqlExecuteResponse;
     };
     readOnlyTemporarilyDisabled: {
         noteContext: NoteContext;
