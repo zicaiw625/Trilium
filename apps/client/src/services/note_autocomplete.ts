@@ -71,7 +71,27 @@ interface ManagedInstance {
     cleanup: () => void;
 }
 
-const instanceMap = new WeakMap<HTMLElement, ManagedInstance>();
+const INSTANCE_KEY = Symbol("noteAutocompleteInstance");
+
+type ManagedAutocompleteElement = HTMLElement & {
+    [INSTANCE_KEY]?: ManagedInstance;
+};
+
+function getManagedInstanceForElement(inputEl: HTMLElement | null | undefined): ManagedInstance | null {
+    if (!inputEl) {
+        return null;
+    }
+
+    return (inputEl as ManagedAutocompleteElement)[INSTANCE_KEY] ?? null;
+}
+
+function setManagedInstanceForElement(inputEl: HTMLElement, instance: ManagedInstance) {
+    (inputEl as ManagedAutocompleteElement)[INSTANCE_KEY] = instance;
+}
+
+function clearManagedInstanceForElement(inputEl: HTMLElement) {
+    delete (inputEl as ManagedAutocompleteElement)[INSTANCE_KEY];
+}
 
 function renderHighlightedNodes(text: string, { allowBreaks = false, replaceBreaks = false }: { allowBreaks?: boolean; replaceBreaks?: boolean } = {}): ComponentChild[] {
     const parser = new DOMParser();
@@ -369,7 +389,7 @@ function resetSelectionState($el: JQuery<HTMLElement>) {
 
 function getManagedInstance($el: JQuery<HTMLElement>): ManagedInstance | null {
     const inputEl = $el[0] as HTMLInputElement | undefined;
-    return inputEl ? (instanceMap.get(inputEl) ?? null) : null;
+    return getManagedInstanceForElement(inputEl);
 }
 
 async function handleSuggestionSelection(
@@ -493,7 +513,7 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
     $el.addClass("note-autocomplete-input");
     const inputEl = $el[0] as HTMLInputElement;
 
-    if (instanceMap.has(inputEl)) {
+    if (getManagedInstanceForElement(inputEl)) {
         $el
             .off("autocomplete:noteselected")
             .off("autocomplete:externallinkselected")
@@ -807,7 +827,7 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
         panelController.destroy();
     };
 
-    instanceMap.set(inputEl, {
+    setManagedInstanceForElement(inputEl, {
         autocomplete,
         panelEl,
         clearCursor,
@@ -846,10 +866,10 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
 
 export function destroyAutocomplete($el: JQuery<HTMLElement> | HTMLElement) {
     const inputEl = $el instanceof HTMLElement ? $el : $el[0] as HTMLInputElement;
-    const instance = instanceMap.get(inputEl);
+    const instance = getManagedInstanceForElement(inputEl);
     if (instance) {
         instance.cleanup();
-        instanceMap.delete(inputEl);
+        clearManagedInstanceForElement(inputEl);
     }
 }
 

@@ -6,11 +6,13 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 const {
     initNoteAutocompleteSpy,
     setTextSpy,
-    clearTextSpy
+    clearTextSpy,
+    destroyAutocompleteSpy
 } = vi.hoisted(() => ({
     initNoteAutocompleteSpy: vi.fn(($el) => $el),
     setTextSpy: vi.fn(),
-    clearTextSpy: vi.fn()
+    clearTextSpy: vi.fn(),
+    destroyAutocompleteSpy: vi.fn()
 }));
 
 vi.mock("../../services/i18n", () => ({
@@ -22,7 +24,8 @@ vi.mock("../../services/note_autocomplete", () => ({
     default: {
         initNoteAutocomplete: initNoteAutocompleteSpy,
         setText: setTextSpy,
-        clearText: clearTextSpy
+        clearText: clearTextSpy,
+        destroyAutocomplete: destroyAutocompleteSpy
     }
 }));
 
@@ -131,5 +134,19 @@ describe("NoteAutocomplete", () => {
         expect(onTextChange).toHaveBeenCalledWith("typed text");
         expect(onKeyDown).toHaveBeenCalledWith(expect.any(KeyboardEvent));
         expect(onBlur).toHaveBeenCalledWith("selected-note-id");
+    });
+
+    it("destroys the autocomplete instance on unmount", () => {
+        act(() => {
+            render(<NoteAutocomplete />, container);
+        });
+
+        const input = container.querySelector("input") as HTMLInputElement;
+
+        act(() => {
+            render(null, container);
+        });
+
+        expect(destroyAutocompleteSpy).toHaveBeenCalledWith(input);
     });
 });

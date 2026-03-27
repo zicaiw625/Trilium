@@ -29,13 +29,20 @@ export default function NoteAutocomplete({ id, inputRef: externalInputRef, text,
 
     useEffect(() => {
         if (!ref.current) return;
-        const $autoComplete = $(ref.current);
+        const inputEl = ref.current;
+        const $autoComplete = $(inputEl);
 
+        // The headless autocomplete keeps internal state while the user types, so
+        // initialize it once per mount and drive updates through the helper methods below.
         note_autocomplete.initNoteAutocomplete($autoComplete, {
             ...opts,
             container: container?.current
         });
-    }, [opts, container?.current]);
+
+        return () => {
+            note_autocomplete.destroyAutocomplete(inputEl);
+        };
+    }, []);
 
     useEffect(() => {
         if (!ref.current) return;
