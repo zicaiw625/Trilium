@@ -517,6 +517,8 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
     let suppressNextClosedEmptyReset = false;
     let shouldClearQueryAfterClose = false;
     let suggestionRequestId = 0;
+    let lastRenderedItems: Suggestion[] = [];
+    let lastRenderedQuery = currentQuery;
 
     const clearCursor = () => {
         shouldMirrorActiveItemToInput = false;
@@ -558,6 +560,19 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
         autocomplete.setQuery(query);
         autocomplete.setIsOpen(true);
         autocomplete.refresh();
+    };
+
+    const reopenCachedResults = (query: string) => {
+        if (lastRenderedItems.length === 0 || lastRenderedQuery !== query) {
+            return false;
+        }
+
+        shouldAutoselectTopItem = false;
+        shouldMirrorActiveItemToInput = false;
+        inputEl.value = query;
+        autocomplete.setActiveItemId(lastRenderedItems.length > 0 ? 0 : null);
+        autocomplete.setIsOpen(true);
+        return true;
     };
 
     const openRecentNotes = () => {
@@ -619,6 +634,8 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
             const activeId = state.activeItemId ?? null;
             const activeItem = activeId !== null ? items[activeId] : null;
             currentQuery = state.query;
+            lastRenderedItems = items;
+            lastRenderedQuery = state.query;
             const isPanelOpen = state.isOpen && items.length > 0;
 
             if (isPanelOpen !== wasPanelOpen) {
@@ -716,7 +733,27 @@ function initNoteAutocomplete($el: JQuery<HTMLElement>, options?: Options) {
                 panelController.hide();
                 return;
             }
+
             handlers.onFocus(e as any);
+
+            if (wasPanelOpen) {
+                return;
+            }
+
+            const value = inputEl.value.trim();
+            if (value.length === 0) {
+                if (reopenCachedResults("")) {
+                    return;
+                }
+
+                openRecentNotes();
+            } else {
+                if (reopenCachedResults(inputEl.value)) {
+                    return;
+                }
+
+                showQuery(inputEl.value);
+            }
         },
         onBlur() {
             if (options.container) {
