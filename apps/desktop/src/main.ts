@@ -10,7 +10,7 @@ import electronDebug from "electron-debug";
 import electronDl from "electron-dl";
 import { PRODUCT_NAME } from "./app-info";
 import port from "@triliumnext/server/src/services/port.js";
-import { join } from "path";
+import { join, resolve as pathResolve } from "path";
 import { deferred, LOCALES } from "../../../packages/commons/src";
 
 async function main() {
@@ -71,6 +71,26 @@ async function main() {
 
     app.on("second-instance", (event, commandLine) => {
         const lastFocusedWindow = windowService.getLastFocusedWindow();
+        
+        // Handle URL protocol (trilium://)
+        const urlArg = commandLine.find(arg => arg.startsWith("trilium://"));
+        if (urlArg) {
+            const noteId = urlArg.replace("trilium://", "").replace(/^\/\//, "");
+            console.log(`Opening note via URL protocol: ${noteId}`);
+            
+            if (lastFocusedWindow) {
+                if (lastFocusedWindow.isMinimized()) {
+                    lastFocusedWindow.restore();
+                }
+                lastFocusedWindow.show();
+                lastFocusedWindow.focus();
+                
+                // Send note ID to renderer process to open the note
+                lastFocusedWindow.webContents.send("open-note-by-id", noteId);
+            }
+            return;
+        }
+        
         if (commandLine.includes("--new-window")) {
             windowService.createExtraWindow("");
         } else if (lastFocusedWindow) {
@@ -110,12 +130,45 @@ function getUserData() {
 async function onReady() {
     //    app.setAppUserModelId('com.github.zadam.trilium');
 
+    // Register URL protocol for trilium://
+    if (process.defaultApp) {
+        if (process.argv.length >= 2) {
+            app.setAsDefaultProtocolClient("trilium", process.execPath, [pathResolve(process.argv[1])]);
+        }
+    } else {
+        app.setAsDefaultProtocolClient("trilium");
+    }
+
+    // Handle URL protocol on first launch
+    const gotTheLock = app.requestSingleInstanceLock();
+    if (!gotTheLock) {
+        app.quit();
+        return;
+    }
+
+    // Check for URL protocol in initial arguments
+    const urlArg = process.argv.find(arg => arg.startsWith("trilium://"));
+    if (urlArg) {
+        const noteId = urlArg.replace("trilium://", "").replace(/^\/\//, "");
+        console.log(`Initial launch with note ID: ${noteId}`);
+        // Store note ID to be used after window is created
+        global.noteIdToOpen = noteId;
+    }
+
     // if db is not initialized -> setup process
     // if db is initialized, then we need to wait until the migration process is finished
     if (sqlInit.isDbInitialized()) {
         await sqlInit.dbReady;
 
-        await windowService.createMainWindow(app);
+        const mainWindow = await windowService.createMainWindow(app);
+        
+        // Open note if we have a note ID from URL protocol
+        if (global.noteIdToOpen && mainWindow) {
+            setTimeout(() => {
+                mainWindow.webContents.send("open-note-by-id", global.noteIdToOpen);
+                delete global.noteIdToOpen;
+            }, 1000); // Wait a bit for window to be ready
+        }
 
         if (process.platform === "darwin") {
             app.on("activate", async () => {

@@ -8,6 +8,24 @@ async function bootstrap() {
     loadStylesheets();
     loadIcons();
     setBodyAttributes();
+    
+    // Setup IPC listener for URL protocol
+    if (window.glob.isElectron) {
+        const { ipcRenderer } = await import("electron");
+        
+        ipcRenderer.on("open-note-by-id", (event, noteId) => {
+            console.log(`Opening note via URL protocol: ${noteId}`);
+            
+            // Import note services and open the note
+            import("./services/note_context.js").then(module => {
+                const noteContext = module.default;
+                noteContext.setNote(noteId);
+            }).catch(err => {
+                console.error("Failed to open note:", err);
+            });
+        });
+    }
+    
     await loadScripts();
     hideSplash();
 }
