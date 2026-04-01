@@ -69,9 +69,15 @@ async function main() {
         globalShortcut.unregisterAll();
     });
 
-    app.on("second-instance", (event, commandLine) => {
+    app.on("second-instance", (event, commandLine, workingDirectory) => {
         const lastFocusedWindow = windowService.getLastFocusedWindow();
-        if (commandLine.includes("--new-window")) {
+        
+        // Handle note ID from command line
+        const noteId = extractNoteIdFromArgs(commandLine);
+        if (noteId) {
+            focusOrOpenNote(noteId);
+        }
+        else if (commandLine.includes("--new-window")) {
             windowService.createExtraWindow("");
         } else if (lastFocusedWindow) {
             if (lastFocusedWindow.isMinimized()) {
@@ -81,6 +87,29 @@ async function main() {
             lastFocusedWindow.focus();
         }
     });
+
+    // Handle URL protocol on macOS
+    app.on("open-url", (event, url) => {
+        event.preventDefault();
+        const noteId = extractNoteIdFromUrl(url);
+        if (noteId) {
+            focusOrOpenNote(noteId);
+        }
+    });
+
+    // Handle Windows/Linux protocol
+    if (process.platform === "win32" || process.platform === "linux") {
+        app.on("ready", () => {
+            const argv = process.argv;
+            const url = argv.find(arg => arg.startsWith("trilium://"));
+            if (url) {
+                const noteId = extractNoteIdFromUrl(url);
+                if (noteId) {
+                    focusOrOpenNote(noteId);
+                }
+            }
+        });
+    }
 
     await initializeTranslations();
 
@@ -109,6 +138,15 @@ function getUserData() {
 
 async function onReady() {
     //    app.setAppUserModelId('com.github.zadam.trilium');
+
+    // Register URL protocol
+    if (process.defaultApp) {
+        if (process.argv.length >= 2) {
+            app.setAsDefaultProtocolClient("trilium", process.execPath, [path.resolve(process.argv[1])]);
+        }
+    } else {
+        app.setAsDefaultProtocolClient("trilium");
+    }
 
     // if db is not initialized -> setup process
     // if db is initialized, then we need to wait until the migration process is finished
@@ -142,6 +180,58 @@ function getElectronLocale() {
     if (formattingLocale && !correspondingLocale?.rtl) return formattingLocale;
 
     return uiLocale || "en"
+}
+
+function extractNoteIdFromArgs(args: string[]): string | null {
+    for (const arg of args) {
+        // Handle trilium://note/ID format
+        if (arg.startsWith("trilium://")) {
+            return extractNoteIdFromUrl(arg);
+        }
+        // Handle --note-id=ID format
+        if (arg.startsWith("--note-id=")) {
+            return arg.substring("--note-id=".length);
+        }
+        // Handle simple note ID (just the ID)
+        if (/^[a-zA-Z0-9]{8,}$/.test(arg) && !arg.startsWith("-")) {
+            return arg;
+        }
+    }
+    return null;
+}
+
+function extractNoteIdFromUrl(url: string): string | null {
+    try {
+        const urlObj = new URL(url);
+        if (urlObj.protocol === "trilium:") {
+            // trilium:note/ID format
+            const path = urlObj.pathname;
+            const match = path.match(/^\/?note\/([a-zA-Z0-9]+)/);
+            return match ? match[1] : null;
+        }
+    } catch (e) {
+        // Invalid URL, try to extract ID directly
+        const match = url.match(/trilium:\/\/note\/([a-zA-Z0-9]+)/);
+        return match ? match[1] : null;
+    }
+    return null;
+}
+
+async function focusOrOpenNote(noteId: string) {
+    const lastFocusedWindow = windowService.getLastFocusedWindow();
+    if (lastFocusedWindow) {
+        if (lastFocusedWindow.isMinimized()) {
+            lastFocusedWindow.restore();
+        }
+        lastFocusedWindow.show();
+        lastFocusedWindow.focus();
+        
+        // Send note ID to renderer process to open the note
+        lastFocusedWindow.webContents.send("open-note-by-id", noteId);
+    } else {
+        // No window open, create one with the note
+        await windowService.createMainWindow(app, noteId);
+    }
 }
 
 main();
